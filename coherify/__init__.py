@@ -23,6 +23,11 @@ from coherify.approximation import (
     SamplingBasedApproximator, ClusterBasedApproximator, HierarchicalCoherenceApproximator,
     IncrementalCoherenceTracker, StreamingCoherenceEstimator
 )
+from coherify.generation import (
+    CoherenceGuidedBeamSearch, CoherenceBeamSearchDecoder,
+    CoherenceFilter, AdaptiveCoherenceFilter, MultiStageFilter,
+    CoherenceGuidedGenerator, StreamingCoherenceGuide
+)
 
 __all__ = [
     "CoherenceResult",
@@ -56,4 +61,11 @@ __all__ = [
     "HierarchicalCoherenceApproximator",
     "IncrementalCoherenceTracker",
     "StreamingCoherenceEstimator",
+    "CoherenceGuidedBeamSearch",
+    "CoherenceBeamSearchDecoder",
+    "CoherenceFilter",
+    "AdaptiveCoherenceFilter",
+    "MultiStageFilter",
+    "CoherenceGuidedGenerator",
+    "StreamingCoherenceGuide",
 ]
