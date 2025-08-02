@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  coherify-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - coherify-cache:/root/.cache
+    environment:
+      - PYTHONPATH=/app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+  coherify-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - coherify-cache:/root/.cache
+    environment:
+      - PYTHONPATH=/app
+    command: pytest tests/ -v
+
+  coherify-example:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - coherify-cache:/root/.cache
+    environment:
+      - PYTHONPATH=/app
+    command: python examples/basic_usage.py
+
+volumes:
+  coherify-cache:
