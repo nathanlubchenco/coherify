@@ -374,10 +374,6 @@ coherify/
 └── generation/     # Generation guidance and filtering
 ```
 
-## 🤝 Contributing
-
-We welcome contributions! See `CONTRIBUTING.md` for guidelines.
-
 ### Development Setup
 
 ```bash
@@ -410,13 +406,13 @@ mypy coherify/
 
 ```bash
 # Build and run development container
-docker-compose up coherify-dev
+docker compose up coherify-dev
 
 # Run tests in container
-docker-compose up coherify-test
+docker compose up coherify-test
 
 # Run examples in container
-docker-compose up coherify-example
+docker compose up coherify-example
 ```
 
 ## 📝 Citation
