@@ -124,6 +124,30 @@ The `agent_context/` directory contains resources for AI agents working on this 
 
 **Usage for Claude Code**: Always check these directories first when working on the project to understand the current context, planned architecture, and any previous analysis or decisions.
 
+## Notification Hooks
+
+The repository includes notification hooks for Claude Code to provide desktop notifications during development:
+
+### macOS (default - `.claude_hooks.json`)
+Uses `terminal-notifier` for reliable desktop notifications with sound:
+```json
+{
+  "hooks": {
+    "Notification": [{"matcher": "", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'Awaiting your input' -sound Blow"}]}],
+    "OnTaskComplete": [{"matcher": "completed", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'Task completed successfully' -sound Glass"}]}],
+    "OnError": [{"matcher": "error|failed|exception", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'An error occurred' -sound Basso"}]}]
+  }
+}
+```
+
+**Prerequisites**: Install terminal-notifier with `brew install terminal-notifier`
+
+### Linux (`.claude_hooks_linux.json`)
+For Linux systems, copy `.claude_hooks_linux.json` to `.claude_hooks.json` to use `notify-send` instead of `terminal-notifier`.
+
+### Alternative (`.claude_hooks_alt.json`)
+Audio-only version using `echo` and `say` commands for systems where desktop notifications don't work.
+
 ## Critical Implementation Notes
 
 - **Modular Design**: Separate coherence calculation from probability estimation to allow mixing different approaches

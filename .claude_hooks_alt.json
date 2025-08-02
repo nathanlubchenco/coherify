@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔔 Claude Code: Awaiting your input (Coherify)' && say 'notification'"
+          }
+        ]
+      }
+    ],
+    "OnTaskComplete": [
+      {
+        "matcher": "completed",
+        "hooks": [
+          {
+            "type": "command", 
+            "command": "echo '✅ Claude Code: Task completed successfully (Coherify)' && say 'task complete'"
+          }
+        ]
+      }
+    ],
+    "OnError": [
+      {
+        "matcher": "error|failed|exception",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '❌ Claude Code: An error occurred (Coherify)' && say 'error'"
+          }
+        ]
+      }
+    ]
+  }
+}
