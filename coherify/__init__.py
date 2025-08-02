@@ -18,6 +18,11 @@ from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEv
 from coherify.utils.caching import CachedEncoder, EmbeddingCache
 from coherify.utils.visualization import CoherenceVisualizer, CoherenceAnalyzer
 from coherify.rag import CoherenceReranker, CoherenceRAG, CoherenceGuidedRetriever
+from coherify.approximation import (
+    RandomSampler, StratifiedSampler, DiversitySampler, ImportanceSampler,
+    SamplingBasedApproximator, ClusterBasedApproximator, HierarchicalCoherenceApproximator,
+    IncrementalCoherenceTracker, StreamingCoherenceEstimator
+)
 
 __all__ = [
     "CoherenceResult",
@@ -42,4 +47,13 @@ __all__ = [
     "CoherenceReranker",
     "CoherenceRAG",
     "CoherenceGuidedRetriever",
+    "RandomSampler",
+    "StratifiedSampler",
+    "DiversitySampler", 
+    "ImportanceSampler",
+    "SamplingBasedApproximator",
+    "ClusterBasedApproximator",
+    "HierarchicalCoherenceApproximator",
+    "IncrementalCoherenceTracker",
+    "StreamingCoherenceEstimator",
 ]
