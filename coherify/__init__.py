@@ -50,6 +50,9 @@ from coherify.benchmarks.multi_format_adapters import (
 from coherify.benchmarks.fever_adapter import (
     FEVERAdapter, FEVERConfig, EvidenceBasedCoherence
 )
+from coherify.benchmarks.faithbench_adapter import (
+    FaithBenchAdapter, FaithBenchConfig, FaithfulnessCoherence
+)
 
 __all__ = [
     "CoherenceResult",
@@ -119,4 +122,7 @@ __all__ = [
     "FEVERAdapter",
     "FEVERConfig",
     "EvidenceBasedCoherence",
+    "FaithBenchAdapter",
+    "FaithBenchConfig", 
+    "FaithfulnessCoherence",
 ]

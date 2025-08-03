@@ -51,6 +51,10 @@ from coherify.benchmarks.fever_adapter import (
     FEVERAdapter, FEVERConfig, EvidenceBasedCoherence
 )
 
+from coherify.benchmarks.faithbench_adapter import (
+    FaithBenchAdapter, FaithBenchConfig, FaithfulnessCoherence
+)
+
 
 class MultiBenchmarkRunner:
     """Runner for multiple benchmark formats with coherence evaluation."""
@@ -588,6 +592,187 @@ class MultiBenchmarkRunner:
         
         return analysis
     
+    def run_faithbench_benchmark(self, sample_size: int = 5) -> Dict[str, Any]:
+        """Run FaithBench hallucination detection benchmark."""
+        print(f"\n🔍 Running FaithBench Hallucination Detection Benchmark")
+        print("=" * 60)
+        
+        # Load FaithBench data (using mock data for now)
+        data = self._load_faithbench_data(sample_size)
+        if not data:
+            return {"error": "Failed to load FaithBench data"}
+        
+        # Setup adapter
+        config = FaithBenchConfig(
+            enable_multi_response=self.use_api,
+            num_responses_per_sample=3,
+            temperature_range=(0.1, 0.5),
+            reasoning_trace_enabled=True,
+            faithfulness_weight=0.7,
+            coherence_weight=0.3,
+            aggregation_strategy="majority"
+        )
+        
+        adapter = FaithBenchAdapter(config=config, provider=self.provider)
+        
+        # Setup coherence measures
+        measures = [
+            HybridCoherence(),
+            FaithfulnessCoherence(provider=self.provider)
+        ]
+        
+        if self.use_api:
+            measures.append(TemperatureVarianceCoherence(provider=self.provider))
+        
+        # Run evaluation
+        results = self._evaluate_benchmark(data, adapter, measures, "FaithBench")
+        
+        # Analyze faithfulness coherence
+        faithfulness_analysis = self._analyze_faithfulness_coherence(results)
+        results["faithfulness_analysis"] = faithfulness_analysis
+        
+        return results
+    
+    def _load_faithbench_data(self, sample_size: int) -> List[Dict[str, Any]]:
+        """Load FaithBench dataset (mock for now)."""
+        print("  📥 Loading FaithBench data...")
+        
+        # Create comprehensive mock FaithBench data (subset from the full example)
+        mock_data = [
+            # Faithful summary - no hallucinations
+            {
+                "sample_id": 1,
+                "source": "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France. It is named after the engineer Gustave Eiffel, whose company designed and built the tower. Constructed from 1887 to 1889, it was the world's tallest man-made structure until the Chrysler Building was built in New York in 1930.",
+                "summary": "The Eiffel Tower is an iron tower in Paris, France, named after engineer Gustave Eiffel. Built between 1887-1889, it was the world's tallest structure until 1930.",
+                "annotations": [
+                    {
+                        "annot_id": 1,
+                        "annotator_id": "annotator_1",
+                        "annotator_name": "Alice",
+                        "label": ["Consistent"],
+                        "note": "Summary accurately reflects source content",
+                        "summary_span": "The Eiffel Tower is an iron tower in Paris, France",
+                        "summary_start": 0,
+                        "summary_end": 50,
+                        "source_span": "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France",
+                        "source_start": 0,
+                        "source_end": 87
+                    }
+                ],
+                "metadata": {
+                    "summarizer": "gpt-3.5-turbo",
+                    "hhemv1": 0.85,
+                    "hhem-2.1": 0.90,
+                    "trueteacher": 0,
+                    "true_nli": 0,
+                    "gpt_3.5_turbo": 0,
+                    "gpt_4o": 0
+                }
+            },
+            # Intrinsic hallucination - contradicts source
+            {
+                "sample_id": 2,
+                "source": "Climate change refers to long-term shifts in global temperatures and weather patterns. While climate change is natural, human activities have been the main driver since the 1800s, primarily through burning fossil fuels like coal, oil and gas.",
+                "summary": "Climate change refers to long-term shifts in global temperatures. Human activities have been the main driver since the 1900s, primarily through deforestation and agriculture.",
+                "annotations": [
+                    {
+                        "annot_id": 2,
+                        "annotator_id": "annotator_2", 
+                        "annotator_name": "Bob",
+                        "label": ["Unwanted", "Unwanted.Intrinsic"],
+                        "note": "Summary incorrectly states 1900s instead of 1800s, and lists wrong primary causes",
+                        "summary_span": "since the 1900s, primarily through deforestation and agriculture",
+                        "summary_start": 85,
+                        "summary_end": 145,
+                        "source_span": "since the 1800s, primarily through burning fossil fuels",
+                        "source_start": 180,
+                        "source_end": 235
+                    }
+                ],
+                "metadata": {
+                    "summarizer": "mistral-7b",
+                    "hhemv1": 0.25,
+                    "hhem-2.1": 0.35,
+                    "trueteacher": 1,
+                    "true_nli": 1,
+                    "gpt_3.5_turbo": 1,
+                    "gpt_4o": 1
+                }
+            },
+            # Extrinsic hallucination - adds unsupported information
+            {
+                "sample_id": 3,
+                "source": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to create oxygen and energy in the form of sugar. This process is fundamental to life on Earth.",
+                "summary": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to create oxygen and sugar. This process was discovered by Joseph Priestley in 1772 and is fundamental to all life on Earth.",
+                "annotations": [
+                    {
+                        "annot_id": 3,
+                        "annotator_id": "annotator_3",
+                        "annotator_name": "Carol", 
+                        "label": ["Unwanted", "Unwanted.Extrinsic"],
+                        "note": "Summary adds unsupported historical information about Joseph Priestley",
+                        "summary_span": "This process was discovered by Joseph Priestley in 1772",
+                        "summary_start": 120,
+                        "summary_end": 170,
+                        "source_span": None,
+                        "source_start": None,
+                        "source_end": None
+                    }
+                ],
+                "metadata": {
+                    "summarizer": "llama-2-7b",
+                    "hhemv1": 0.40,
+                    "hhem-2.1": 0.45,
+                    "trueteacher": 1,
+                    "true_nli": 0,
+                    "gpt_3.5_turbo": 0,
+                    "gpt_4o": 1
+                }
+            }
+        ]
+        
+        print(f"  ✅ Using {min(len(mock_data), sample_size)} FaithBench samples (mock data)")
+        return mock_data[:sample_size]
+    
+    def _analyze_faithfulness_coherence(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze coherence specific to faithfulness evaluation."""
+        analysis = {
+            "faithfulness_consistency": 0.0,
+            "hallucination_detection_accuracy": 0.0,
+            "source_summary_coherence": 0.0
+        }
+        
+        multi_results = results.get("multi_response_results", [])
+        if not multi_results:
+            return analysis
+        
+        faithful_consistent_count = 0
+        high_detection_count = 0
+        high_coherence_count = 0
+        
+        for result in multi_results:
+            evaluation = result.get("response_evaluation", {})
+            
+            # Check faithfulness consistency
+            if evaluation.get("faithfulness_consistency", 0.0) > 0.6:
+                faithful_consistent_count += 1
+            
+            # Check hallucination detection
+            if evaluation.get("accuracy", 0.0) > 0.7:
+                high_detection_count += 1
+            
+            # Check overall coherence score
+            if evaluation.get("faithbench_score", 0.0) > 0.7:
+                high_coherence_count += 1
+        
+        total = len(multi_results)
+        if total > 0:
+            analysis["faithfulness_consistency"] = faithful_consistent_count / total
+            analysis["hallucination_detection_accuracy"] = high_detection_count / total
+            analysis["source_summary_coherence"] = high_coherence_count / total
+        
+        return analysis
+    
     def run_comparative_analysis(self, all_results: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """Run comparative analysis across all benchmarks."""
         print(f"\n📊 Running Comparative Analysis Across Benchmarks")
@@ -661,7 +846,7 @@ def main():
     """Main multi-benchmark runner."""
     parser = argparse.ArgumentParser(description="Run multi-format benchmarks with Coherify")
     parser.add_argument("--benchmarks", nargs="+", 
-                       choices=["gsm8k", "hellaswag", "mmlu", "fever", "all"],
+                       choices=["gsm8k", "hellaswag", "mmlu", "fever", "faithbench", "all"],
                        default=["all"],
                        help="Benchmarks to run")
     parser.add_argument("--use-api", action="store_true", 
@@ -707,7 +892,7 @@ def main():
     # Determine which benchmarks to run
     benchmarks_to_run = args.benchmarks
     if "all" in benchmarks_to_run:
-        benchmarks_to_run = ["gsm8k", "hellaswag", "mmlu", "fever"]
+        benchmarks_to_run = ["gsm8k", "hellaswag", "mmlu", "fever", "faithbench"]
     
     # Run benchmarks
     all_results = {}
@@ -724,6 +909,9 @@ def main():
         
         if "fever" in benchmarks_to_run:
             all_results["FEVER"] = runner.run_fever_benchmark(args.sample_size)
+        
+        if "faithbench" in benchmarks_to_run:
+            all_results["FaithBench"] = runner.run_faithbench_benchmark(args.sample_size)
         
         # Run comparative analysis
         if len(all_results) > 1:
