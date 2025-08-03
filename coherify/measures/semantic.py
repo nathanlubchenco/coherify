@@ -44,7 +44,9 @@ class SemanticCoherence(CoherenceMeasure):
         """Get default sentence transformer encoder."""
         try:
             from sentence_transformers import SentenceTransformer
-            return SentenceTransformer('all-MiniLM-L6-v2')
+            from coherify.utils.transformers_utils import suppress_transformer_warnings
+            with suppress_transformer_warnings():
+                return SentenceTransformer('all-MiniLM-L6-v2')
         except ImportError:
             raise ImportError(
                 "sentence-transformers is required for default encoder. "
@@ -67,7 +69,9 @@ class SemanticCoherence(CoherenceMeasure):
         texts = [prop.text for prop in prop_set.propositions]
         
         # Get embeddings
-        embeddings = self.encoder.encode(texts)
+        from coherify.utils.transformers_utils import suppress_transformer_warnings
+        with suppress_transformer_warnings():
+            embeddings = self.encoder.encode(texts)
         if len(embeddings.shape) == 1:
             embeddings = embeddings.reshape(1, -1)
         
@@ -110,7 +114,9 @@ class SemanticCoherence(CoherenceMeasure):
     def compute_pairwise(self, prop1: Proposition, prop2: Proposition) -> float:
         """Compute semantic similarity between two propositions."""
         texts = [prop1.text, prop2.text]
-        embeddings = self.encoder.encode(texts)
+        from coherify.utils.transformers_utils import suppress_transformer_warnings
+        with suppress_transformer_warnings():
+            embeddings = self.encoder.encode(texts)
         
         if len(embeddings.shape) == 1:
             embeddings = embeddings.reshape(1, -1)

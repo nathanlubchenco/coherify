@@ -39,6 +39,7 @@ from coherify.measures.api_enhanced import (
 from coherify.benchmarks.api_enhanced import (
     APIBenchmarkConfig, APIEnhancedQAAdapter, APIBenchmarkEvaluator
 )
+from coherify.utils.clean_output import enable_clean_output, clean_output, enable_clean_mode
 
 __all__ = [
     "CoherenceResult",
@@ -94,4 +95,7 @@ __all__ = [
     "APIBenchmarkConfig",
     "APIEnhancedQAAdapter",
     "APIBenchmarkEvaluator",
+    "enable_clean_output",
+    "clean_output", 
+    "enable_clean_mode",
 ]

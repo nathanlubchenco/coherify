@@ -56,6 +56,17 @@ def suppress_transformer_warnings():
             message=".*Device set to use.*"
         )
         
+        # Suppress informational messages that appear during model loading
+        import logging
+        # Temporarily reduce transformers logging level
+        transformers_logger = logging.getLogger("transformers")
+        original_level = transformers_logger.level
+        transformers_logger.setLevel(logging.ERROR)
+        
+        # Store original level to restore later
+        if not hasattr(warnings, '_transformers_original_level'):
+            warnings._transformers_original_level = original_level
+        
         yield
 
 

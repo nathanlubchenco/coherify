@@ -383,8 +383,14 @@ def main():
     parser.add_argument("--use-api", action="store_true", help="Use API-enhanced measures")
     parser.add_argument("--sample-size", type=int, help="Limit number of samples to evaluate")
     parser.add_argument("--api-only", action="store_true", help="Run only API-enhanced benchmark")
+    parser.add_argument("--verbose", action="store_true", help="Show all warnings and debug output")
     
     args = parser.parse_args()
+    
+    # Enable clean output unless verbose mode is requested
+    if not args.verbose:
+        from coherify.utils.clean_output import enable_clean_output
+        enable_clean_output()
     
     print("🚀 TruthfulQA Benchmark Runner")
     print("=" * 50)

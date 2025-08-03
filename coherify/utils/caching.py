@@ -376,7 +376,9 @@ class CachedEncoder:
         
         # Encode uncached texts
         if texts_to_encode:
-            fresh_embeddings = self.encoder.encode(texts_to_encode, **kwargs)
+            from .transformers_utils import suppress_transformer_warnings
+            with suppress_transformer_warnings():
+                fresh_embeddings = self.encoder.encode(texts_to_encode, **kwargs)
             if isinstance(fresh_embeddings, np.ndarray) and fresh_embeddings.ndim == 1:
                 fresh_embeddings = [fresh_embeddings]
             
