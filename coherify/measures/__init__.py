@@ -4,21 +4,21 @@ from .semantic import SemanticCoherence
 from .entailment import EntailmentCoherence, HuggingFaceNLIWrapper, SimpleNLIModel
 from .hybrid import HybridCoherence, AdaptiveHybridCoherence
 from .shogenji import (
-    ShogunjiCoherence, 
-    ModelBasedProbabilityEstimator, 
+    ShogunjiCoherence,
+    ModelBasedProbabilityEstimator,
     ConfidenceBasedProbabilityEstimator,
-    EnsembleProbabilityEstimator
+    EnsembleProbabilityEstimator,
 )
 
 __all__ = [
     "SemanticCoherence",
     "EntailmentCoherence",
-    "HuggingFaceNLIWrapper", 
+    "HuggingFaceNLIWrapper",
     "SimpleNLIModel",
     "HybridCoherence",
     "AdaptiveHybridCoherence",
     "ShogunjiCoherence",
     "ModelBasedProbabilityEstimator",
-    "ConfidenceBasedProbabilityEstimator", 
+    "ConfidenceBasedProbabilityEstimator",
     "EnsembleProbabilityEstimator",
 ]

@@ -5,20 +5,14 @@ from .sampling import (
     StratifiedSampler,
     DiversitySampler,
     ImportanceSampler,
-    SamplingBasedApproximator
+    SamplingBasedApproximator,
 )
-from .clustering import (
-    ClusterBasedApproximator,
-    HierarchicalCoherenceApproximator
-)
-from .incremental import (
-    IncrementalCoherenceTracker,
-    StreamingCoherenceEstimator
-)
+from .clustering import ClusterBasedApproximator, HierarchicalCoherenceApproximator
+from .incremental import IncrementalCoherenceTracker, StreamingCoherenceEstimator
 
 __all__ = [
     "RandomSampler",
-    "StratifiedSampler", 
+    "StratifiedSampler",
     "DiversitySampler",
     "ImportanceSampler",
     "SamplingBasedApproximator",

@@ -2,12 +2,12 @@
 
 from .adapters import (
     BenchmarkAdapter,
-    QABenchmarkAdapter, 
+    QABenchmarkAdapter,
     SummarizationBenchmarkAdapter,
     MultiTurnDialogueAdapter,
     get_adapter,
     register_adapter,
-    BENCHMARK_ADAPTERS
+    BENCHMARK_ADAPTERS,
 )
 from .truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator
 from .selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
@@ -15,13 +15,13 @@ from .selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
 __all__ = [
     "BenchmarkAdapter",
     "QABenchmarkAdapter",
-    "SummarizationBenchmarkAdapter", 
+    "SummarizationBenchmarkAdapter",
     "MultiTurnDialogueAdapter",
     "get_adapter",
     "register_adapter",
     "BENCHMARK_ADAPTERS",
     "TruthfulQAAdapter",
     "TruthfulQAEvaluator",
-    "SelfCheckGPTAdapter", 
+    "SelfCheckGPTAdapter",
     "SelfCheckGPTEvaluator",
 ]

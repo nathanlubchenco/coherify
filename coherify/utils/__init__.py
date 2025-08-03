@@ -7,13 +7,13 @@ from .caching import (
     cached_computation,
     get_default_embedding_cache,
     get_default_computation_cache,
-    clear_all_caches
+    clear_all_caches,
 )
 from .visualization import CoherenceVisualizer, CoherenceAnalyzer
 
 __all__ = [
     "EmbeddingCache",
-    "ComputationCache", 
+    "ComputationCache",
     "CachedEncoder",
     "cached_computation",
     "get_default_embedding_cache",

@@ -4,17 +4,10 @@ from .beam_search import (
     CoherenceGuidedBeamSearch,
     CoherenceBeamSearchDecoder,
     GenerationCandidate,
-    BeamSearchResult
+    BeamSearchResult,
 )
-from .filtering import (
-    CoherenceFilter,
-    AdaptiveCoherenceFilter,
-    MultiStageFilter
-)
-from .guidance import (
-    CoherenceGuidedGenerator,
-    StreamingCoherenceGuide
-)
+from .filtering import CoherenceFilter, AdaptiveCoherenceFilter, MultiStageFilter
+from .guidance import CoherenceGuidedGenerator, StreamingCoherenceGuide
 
 __all__ = [
     "CoherenceGuidedBeamSearch",
@@ -22,7 +15,7 @@ __all__ = [
     "GenerationCandidate",
     "BeamSearchResult",
     "CoherenceFilter",
-    "AdaptiveCoherenceFilter", 
+    "AdaptiveCoherenceFilter",
     "MultiStageFilter",
     "CoherenceGuidedGenerator",
     "StreamingCoherenceGuide",

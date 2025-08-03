@@ -5,6 +5,6 @@ from .retrieval import CoherenceGuidedRetriever
 
 __all__ = [
     "CoherenceReranker",
-    "CoherenceRAG", 
+    "CoherenceRAG",
     "CoherenceGuidedRetriever",
 ]

@@ -5,36 +5,41 @@ Adapter for FaithBench hallucination detection benchmark that evaluates
 faithfulness of AI-generated summaries using coherence analysis.
 """
 
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
-import json
-from pathlib import Path
 
 from coherify.core.base import PropositionSet, Proposition
-from coherify.benchmarks.multi_format_adapters import MultiResponseBenchmarkAdapter, MultiResponseBenchmarkConfig
-from coherify.measures.multi_response import MultiResponseCoherenceMeasure, MultiResponseConfig
+from coherify.benchmarks.multi_format_adapters import (
+    MultiResponseBenchmarkAdapter,
+    MultiResponseBenchmarkConfig,
+)
+from coherify.measures.multi_response import (
+    MultiResponseCoherenceMeasure,
+    MultiResponseConfig,
+)
 
 
 class FaithBenchLabel(str, Enum):
     """FaithBench hallucination labels with severity mapping."""
-    UNWANTED_INTRINSIC = "Unwanted.Intrinsic"      # Severity 3 - Contradicts source
-    UNWANTED_EXTRINSIC = "Unwanted.Extrinsic"      # Severity 3 - Adds unsupported info
-    UNWANTED = "Unwanted"                          # Severity 3 - General unwanted
-    QUESTIONABLE = "Questionable"                  # Severity 2 - Ambiguous
-    BENIGN = "Benign"                             # Severity 1 - Acceptable
-    CONSISTENT = "Consistent"                      # Severity 0 - Faithful
+
+    UNWANTED_INTRINSIC = "Unwanted.Intrinsic"  # Severity 3 - Contradicts source
+    UNWANTED_EXTRINSIC = "Unwanted.Extrinsic"  # Severity 3 - Adds unsupported info
+    UNWANTED = "Unwanted"  # Severity 3 - General unwanted
+    QUESTIONABLE = "Questionable"  # Severity 2 - Ambiguous
+    BENIGN = "Benign"  # Severity 1 - Acceptable
+    CONSISTENT = "Consistent"  # Severity 0 - Faithful
 
     @property
     def severity(self) -> int:
         """Get severity score for label."""
         severity_map = {
             "Unwanted.Intrinsic": 3,
-            "Unwanted.Extrinsic": 3, 
+            "Unwanted.Extrinsic": 3,
             "Unwanted": 3,
             "Questionable": 2,
             "Benign": 1,
-            "Consistent": 0
+            "Consistent": 0,
         }
         return severity_map.get(self.value, 0)
 
@@ -42,6 +47,7 @@ class FaithBenchLabel(str, Enum):
 @dataclass
 class FaithBenchAnnotation:
     """Single annotation in FaithBench sample."""
+
     annot_id: int
     annotator_id: str
     annotator_name: str
@@ -57,18 +63,27 @@ class FaithBenchAnnotation:
     @property
     def is_hallucination(self) -> bool:
         """Check if annotation indicates hallucination."""
-        return any(FaithBenchLabel(lbl).severity >= 2 for lbl in self.label if lbl in [e.value for e in FaithBenchLabel])
+        return any(
+            FaithBenchLabel(lbl).severity >= 2
+            for lbl in self.label
+            if lbl in [e.value for e in FaithBenchLabel]
+        )
 
     @property
     def max_severity(self) -> int:
         """Get maximum severity across all labels."""
-        severities = [FaithBenchLabel(lbl).severity for lbl in self.label if lbl in [e.value for e in FaithBenchLabel]]
+        severities = [
+            FaithBenchLabel(lbl).severity
+            for lbl in self.label
+            if lbl in [e.value for e in FaithBenchLabel]
+        ]
         return max(severities) if severities else 0
 
 
 @dataclass
 class FaithBenchMetadata:
     """Metadata for FaithBench sample."""
+
     summarizer: str
     hhemv1: Optional[float] = None
     hhem_2_1: Optional[float] = None
@@ -82,6 +97,7 @@ class FaithBenchMetadata:
 @dataclass
 class FaithBenchSample:
     """Complete FaithBench sample with annotations."""
+
     sample_id: int
     source: str
     summary: str
@@ -103,9 +119,11 @@ class FaithBenchSample:
         """Get aggregated hallucination label using specified strategy."""
         if not self.annotations:
             return False
-        
+
         if strategy == "majority":
-            hallucination_votes = sum(1 for ann in self.annotations if ann.is_hallucination)
+            hallucination_votes = sum(
+                1 for ann in self.annotations if ann.is_hallucination
+            )
             return hallucination_votes > len(self.annotations) / 2
         elif strategy == "worst_case":
             return any(ann.is_hallucination for ann in self.annotations)
@@ -118,38 +136,37 @@ class FaithBenchSample:
 @dataclass
 class FaithBenchConfig(MultiResponseBenchmarkConfig):
     """Configuration for FaithBench evaluation."""
-    aggregation_strategy: str = "majority"        # "majority", "worst_case", "best_case"
-    include_span_analysis: bool = True           # Include span-level analysis
-    faithfulness_weight: float = 0.7            # Weight for faithfulness vs coherence
-    coherence_weight: float = 0.3               # Weight for coherence analysis
-    enable_source_coherence: bool = True        # Analyze source-summary coherence
-    enable_internal_coherence: bool = True      # Analyze summary internal coherence
-    severity_threshold: int = 2                 # Minimum severity for hallucination
-    enable_span_coherence: bool = True          # Analyze coherence of problem spans
+
+    aggregation_strategy: str = "majority"  # "majority", "worst_case", "best_case"
+    include_span_analysis: bool = True  # Include span-level analysis
+    faithfulness_weight: float = 0.7  # Weight for faithfulness vs coherence
+    coherence_weight: float = 0.3  # Weight for coherence analysis
+    enable_source_coherence: bool = True  # Analyze source-summary coherence
+    enable_internal_coherence: bool = True  # Analyze summary internal coherence
+    severity_threshold: int = 2  # Minimum severity for hallucination
+    enable_span_coherence: bool = True  # Analyze coherence of problem spans
 
 
 class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
     """Adapter for FaithBench hallucination detection benchmark."""
-    
-    def __init__(self, 
-                 config: Optional[FaithBenchConfig] = None,
-                 provider = None):
+
+    def __init__(self, config: Optional[FaithBenchConfig] = None, provider=None):
         if config is None:
             config = FaithBenchConfig(
                 enable_multi_response=True,
                 num_responses_per_sample=3,
                 temperature_range=(0.1, 0.5),  # Lower for faithful summarization
-                reasoning_trace_enabled=True
+                reasoning_trace_enabled=True,
             )
         super().__init__("FaithBench", config, provider)
-    
+
     def adapt_single(self, sample: Dict[str, Any]) -> PropositionSet:
         """Convert FaithBench sample to PropositionSet."""
         faithbench_sample = self._parse_faithbench_sample(sample)
-        
+
         # Create propositions from source and summary
         props = []
-        
+
         # Add source document as context propositions
         source_sentences = self._segment_text(faithbench_sample.source)
         for i, sentence in enumerate(source_sentences):
@@ -158,11 +175,11 @@ class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
                 metadata={
                     "type": "source",
                     "sentence_index": i,
-                    "sample_id": faithbench_sample.sample_id
-                }
+                    "sample_id": faithbench_sample.sample_id,
+                },
             )
             props.append(source_prop)
-        
+
         # Add summary sentences as target propositions
         summary_sentences = self._segment_text(faithbench_sample.summary)
         for i, sentence in enumerate(summary_sentences):
@@ -170,21 +187,21 @@ class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
             is_hallucinated = self._check_hallucination_overlap(
                 sentence, i, faithbench_sample.annotations, faithbench_sample.summary
             )
-            
+
             summary_prop = Proposition(
                 text=sentence,
                 metadata={
                     "type": "summary",
                     "sentence_index": i,
                     "is_hallucinated": is_hallucinated,
-                    "sample_id": faithbench_sample.sample_id
-                }
+                    "sample_id": faithbench_sample.sample_id,
+                },
             )
             props.append(summary_prop)
-        
+
         # Context includes the faithfulness evaluation task
         context = f"Faithfulness evaluation: Summary should be faithful to source. Has hallucination: {faithbench_sample.has_hallucination}"
-        
+
         return PropositionSet(
             propositions=props,
             context=context,
@@ -194,14 +211,16 @@ class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
                 "summarizer": faithbench_sample.metadata.summarizer,
                 "num_annotations": len(faithbench_sample.annotations),
                 "max_severity": faithbench_sample.max_severity,
-                "aggregated_label": faithbench_sample.get_aggregated_label(self.config.aggregation_strategy)
-            }
+                "aggregated_label": faithbench_sample.get_aggregated_label(
+                    self.config.aggregation_strategy
+                ),
+            },
         )
-    
+
     def format_prompt(self, sample: Dict[str, Any]) -> str:
         """Format FaithBench sample as faithfulness evaluation prompt."""
         faithbench_sample = self._parse_faithbench_sample(sample)
-        
+
         prompt = f"""Faithfulness Evaluation Task: Analyze whether the summary is faithful to the source document.
 
 Source Document:
@@ -211,7 +230,7 @@ Summary:
 {faithbench_sample.summary}
 
 """
-        
+
         if self.config.reasoning_trace_enabled:
             prompt += """Please analyze the faithfulness step by step:
 1. Identify key claims in the summary
@@ -228,60 +247,74 @@ FAITHFUL - Summary accurately reflects source content
 HALLUCINATED - Summary contains contradictions or unsupported claims
 
 Answer:"""
-        
+
         return prompt
-    
-    def evaluate_responses(self, 
-                         sample: Dict[str, Any], 
-                         responses: List[str]) -> Dict[str, Any]:
+
+    def evaluate_responses(
+        self, sample: Dict[str, Any], responses: List[str]
+    ) -> Dict[str, Any]:
         """Evaluate FaithBench responses for faithfulness consistency."""
         faithbench_sample = self._parse_faithbench_sample(sample)
-        ground_truth = faithbench_sample.get_aggregated_label(self.config.aggregation_strategy)
-        
+        ground_truth = faithbench_sample.get_aggregated_label(
+            self.config.aggregation_strategy
+        )
+
         response_analysis = []
         predicted_labels = []
         faithfulness_scores = []
-        
+
         for i, response in enumerate(responses):
             # Extract predicted faithfulness label
             predicted_faithful = self._extract_faithfulness_label(response)
-            is_correct = (not predicted_faithful) == ground_truth  # ground_truth=True means hallucinated
-            
+            is_correct = (
+                not predicted_faithful
+            ) == ground_truth  # ground_truth=True means hallucinated
+
             predicted_labels.append(predicted_faithful)
-            
+
             # Analyze faithfulness reasoning
-            faithfulness_analysis = self._analyze_faithfulness_reasoning(response, faithbench_sample)
+            faithfulness_analysis = self._analyze_faithfulness_reasoning(
+                response, faithbench_sample
+            )
             source_usage = self._analyze_source_usage(response, faithbench_sample)
-            
+
             analysis = {
                 "response_index": i,
                 "predicted_faithful": predicted_faithful,
                 "is_correct": is_correct,
                 "faithfulness_analysis": faithfulness_analysis,
                 "source_usage": source_usage,
-                "response_length": len(response)
+                "response_length": len(response),
             }
             response_analysis.append(analysis)
-            
+
             # Score faithfulness consistency
-            faithfulness_scores.append(faithfulness_analysis.get("consistency_score", 0.0))
-        
+            faithfulness_scores.append(
+                faithfulness_analysis.get("consistency_score", 0.0)
+            )
+
         # Check prediction consistency across responses
         unique_predictions = set(predicted_labels)
         is_prediction_consistent = len(unique_predictions) <= 1
-        
+
         # Majority vote
         if predicted_labels:
             faithful_count = sum(1 for label in predicted_labels if label)
             majority_faithful = faithful_count > len(predicted_labels) / 2
         else:
             majority_faithful = True
-        
+
         # Compute overall scores
-        correct_count = sum(1 for analysis in response_analysis if analysis["is_correct"])
+        correct_count = sum(
+            1 for analysis in response_analysis if analysis["is_correct"]
+        )
         accuracy = correct_count / len(responses) if responses else 0.0
-        avg_faithfulness_consistency = sum(faithfulness_scores) / len(faithfulness_scores) if faithfulness_scores else 0.0
-        
+        avg_faithfulness_consistency = (
+            sum(faithfulness_scores) / len(faithfulness_scores)
+            if faithfulness_scores
+            else 0.0
+        )
+
         return {
             "ground_truth_hallucinated": ground_truth,
             "response_analysis": response_analysis,
@@ -290,12 +323,17 @@ Answer:"""
             "majority_faithful": majority_faithful,
             "accuracy": accuracy,
             "faithfulness_consistency": avg_faithfulness_consistency,
-            "faithbench_score": accuracy * avg_faithfulness_consistency,  # Combined score
+            "faithbench_score": accuracy
+            * avg_faithfulness_consistency,  # Combined score
             "max_severity": faithbench_sample.max_severity,
             "num_annotations": len(faithbench_sample.annotations),
-            "span_analysis": self._analyze_span_consistency(faithbench_sample, responses) if self.config.include_span_analysis else None
+            "span_analysis": (
+                self._analyze_span_consistency(faithbench_sample, responses)
+                if self.config.include_span_analysis
+                else None
+            ),
         }
-    
+
     def _parse_faithbench_sample(self, sample: Dict[str, Any]) -> FaithBenchSample:
         """Parse raw FaithBench sample into structured format."""
         # Parse annotations
@@ -312,10 +350,10 @@ Answer:"""
                 summary_end=ann_data.get("summary_end", 0),
                 source_span=ann_data.get("source_span"),
                 source_start=ann_data.get("source_start"),
-                source_end=ann_data.get("source_end")
+                source_end=ann_data.get("source_end"),
             )
             annotations.append(annotation)
-        
+
         # Parse metadata
         metadata_dict = sample.get("metadata", {})
         metadata = FaithBenchMetadata(
@@ -326,49 +364,51 @@ Answer:"""
             true_nli=metadata_dict.get("true_nli"),
             gpt_3_5_turbo=metadata_dict.get("gpt_3.5_turbo"),
             gpt_4o=metadata_dict.get("gpt_4o"),
-            raw_sample_id=metadata_dict.get("raw_sample_id")
+            raw_sample_id=metadata_dict.get("raw_sample_id"),
         )
-        
+
         return FaithBenchSample(
             sample_id=sample.get("sample_id", 0),
             source=sample.get("source", ""),
             summary=sample.get("summary", ""),
             annotations=annotations,
-            metadata=metadata
+            metadata=metadata,
         )
-    
+
     def _segment_text(self, text: str) -> List[str]:
         """Segment text into sentences."""
         # Simple sentence segmentation
         sentences = []
         current_sentence = ""
-        
+
         for char in text:
             current_sentence += char
-            if char in '.!?' and len(current_sentence.strip()) > 10:
+            if char in ".!?" and len(current_sentence.strip()) > 10:
                 sentences.append(current_sentence.strip())
                 current_sentence = ""
-        
+
         if current_sentence.strip():
             sentences.append(current_sentence.strip())
-        
+
         return sentences
-    
-    def _check_hallucination_overlap(self, 
-                                   sentence: str, 
-                                   sentence_idx: int, 
-                                   annotations: List[FaithBenchAnnotation],
-                                   full_summary: str) -> bool:
+
+    def _check_hallucination_overlap(
+        self,
+        sentence: str,
+        sentence_idx: int,
+        annotations: List[FaithBenchAnnotation],
+        full_summary: str,
+    ) -> bool:
         """Check if sentence overlaps with any hallucination spans."""
         # Find sentence boundaries in full summary
         sentences = self._segment_text(full_summary)
         if sentence_idx >= len(sentences):
             return False
-        
+
         # Estimate sentence position in full text
         sentence_start = sum(len(sentences[i]) + 1 for i in range(sentence_idx))
         sentence_end = sentence_start + len(sentence)
-        
+
         # Check overlap with annotation spans
         for annotation in annotations:
             if annotation.is_hallucination:
@@ -377,99 +417,147 @@ Answer:"""
                 overlap_end = min(sentence_end, annotation.summary_end)
                 if overlap_start < overlap_end:
                     return True
-        
+
         return False
-    
+
     def _extract_faithfulness_label(self, response: str) -> bool:
         """Extract faithfulness label from response (True = faithful, False = hallucinated)."""
         response_upper = response.upper()
-        
+
         # Look for explicit labels
         if "FAITHFUL" in response_upper and "HALLUCINATED" not in response_upper:
             return True
         elif "HALLUCINATED" in response_upper or "HALLUCINATION" in response_upper:
             return False
-        
+
         # Look for other indicators
         faithful_indicators = ["ACCURATE", "CORRECT", "CONSISTENT", "SUPPORTED"]
-        hallucinated_indicators = ["CONTRADICTS", "UNSUPPORTED", "ADDS INFORMATION", "INCONSISTENT"]
-        
-        faithful_count = sum(1 for indicator in faithful_indicators if indicator in response_upper)
-        hallucinated_count = sum(1 for indicator in hallucinated_indicators if indicator in response_upper)
-        
+        hallucinated_indicators = [
+            "CONTRADICTS",
+            "UNSUPPORTED",
+            "ADDS INFORMATION",
+            "INCONSISTENT",
+        ]
+
+        faithful_count = sum(
+            1 for indicator in faithful_indicators if indicator in response_upper
+        )
+        hallucinated_count = sum(
+            1 for indicator in hallucinated_indicators if indicator in response_upper
+        )
+
         if faithful_count > hallucinated_count:
             return True
         elif hallucinated_count > faithful_count:
             return False
-        
+
         # Default to faithful if unclear
         return True
-    
-    def _analyze_faithfulness_reasoning(self, response: str, sample: FaithBenchSample) -> Dict[str, Any]:
+
+    def _analyze_faithfulness_reasoning(
+        self, response: str, sample: FaithBenchSample
+    ) -> Dict[str, Any]:
         """Analyze quality of faithfulness reasoning in response."""
         reasoning_indicators = [
-            "source document", "source", "document", "original text",
-            "claims", "contradicts", "supports", "accurate", "consistent",
-            "adds information", "unsupported", "faithful", "hallucination"
+            "source document",
+            "source",
+            "document",
+            "original text",
+            "claims",
+            "contradicts",
+            "supports",
+            "accurate",
+            "consistent",
+            "adds information",
+            "unsupported",
+            "faithful",
+            "hallucination",
         ]
-        
+
         response_lower = response.lower()
-        
+
         # Count reasoning indicators
-        indicator_count = sum(1 for indicator in reasoning_indicators if indicator in response_lower)
-        
+        indicator_count = sum(
+            1 for indicator in reasoning_indicators if indicator in response_lower
+        )
+
         # Check for specific analysis patterns
-        has_claim_analysis = any(pattern in response_lower for pattern in [
-            "claim", "statement", "assertion", "fact"
-        ])
-        
-        has_source_comparison = any(pattern in response_lower for pattern in [
-            "source says", "document states", "according to", "source mentions"
-        ])
-        
-        has_contradiction_analysis = any(pattern in response_lower for pattern in [
-            "contradicts", "conflicts with", "disagrees", "inconsistent"
-        ])
-        
+        has_claim_analysis = any(
+            pattern in response_lower
+            for pattern in ["claim", "statement", "assertion", "fact"]
+        )
+
+        has_source_comparison = any(
+            pattern in response_lower
+            for pattern in [
+                "source says",
+                "document states",
+                "according to",
+                "source mentions",
+            ]
+        )
+
+        has_contradiction_analysis = any(
+            pattern in response_lower
+            for pattern in [
+                "contradicts",
+                "conflicts with",
+                "disagrees",
+                "inconsistent",
+            ]
+        )
+
         return {
             "reasoning_indicator_count": indicator_count,
             "has_claim_analysis": has_claim_analysis,
             "has_source_comparison": has_source_comparison,
             "has_contradiction_analysis": has_contradiction_analysis,
-            "reasoning_density": indicator_count / len(response.split()) if response else 0,
-            "consistency_score": min(1.0, (indicator_count + 
-                                          int(has_claim_analysis) * 2 + 
-                                          int(has_source_comparison) * 2 +
-                                          int(has_contradiction_analysis) * 2) / 10)
+            "reasoning_density": (
+                indicator_count / len(response.split()) if response else 0
+            ),
+            "consistency_score": min(
+                1.0,
+                (
+                    indicator_count
+                    + int(has_claim_analysis) * 2
+                    + int(has_source_comparison) * 2
+                    + int(has_contradiction_analysis) * 2
+                )
+                / 10,
+            ),
         }
-    
-    def _analyze_source_usage(self, response: str, sample: FaithBenchSample) -> Dict[str, Any]:
+
+    def _analyze_source_usage(
+        self, response: str, sample: FaithBenchSample
+    ) -> Dict[str, Any]:
         """Analyze how well response uses source document information."""
         source_words = set(sample.source.lower().split())
         response_words = set(response.lower().split())
-        
+
         # Simple overlap metric
         overlap = len(source_words.intersection(response_words))
         source_coverage = overlap / len(source_words) if source_words else 0.0
-        
+
         # Check for explicit source references
         source_references = 0
-        for sentence in response.split('.'):
+        for sentence in response.split("."):
             if any(ref in sentence.lower() for ref in ["source", "document", "text"]):
                 source_references += 1
-        
+
         return {
             "source_word_overlap": overlap,
             "source_coverage": source_coverage,
             "source_references": source_references,
-            "uses_source_explicitly": source_references > 0
+            "uses_source_explicitly": source_references > 0,
         }
-    
-    def _analyze_span_consistency(self, sample: FaithBenchSample, responses: List[str]) -> Dict[str, Any]:
+
+    def _analyze_span_consistency(
+        self, sample: FaithBenchSample, responses: List[str]
+    ) -> Dict[str, Any]:
         """Analyze consistency in identifying problematic spans."""
         if not self.config.include_span_analysis:
             return {}
-        
+
         span_mentions = []
         for response in responses:
             # Simple heuristic: look for quoted text or specific mentions
@@ -478,12 +566,12 @@ Answer:"""
                 if annotation.summary_span.lower() in response.lower():
                     mentioned_spans.append(annotation.summary_span)
             span_mentions.append(mentioned_spans)
-        
+
         # Compute consistency in span identification
         all_spans = set()
         for spans in span_mentions:
             all_spans.update(spans)
-        
+
         if not all_spans:
             consistency_score = 1.0  # No spans mentioned consistently
         else:
@@ -491,100 +579,109 @@ Answer:"""
             for span in all_spans:
                 agreement = sum(1 for spans in span_mentions if span in spans)
                 span_agreement[span] = agreement / len(responses)
-            
+
             consistency_score = sum(span_agreement.values()) / len(span_agreement)
-        
+
         return {
             "span_mentions_per_response": span_mentions,
             "total_unique_spans_mentioned": len(all_spans),
             "span_consistency_score": consistency_score,
-            "most_consistent_spans": [span for span, agreement in span_agreement.items() 
-                                    if agreement > 0.5] if 'span_agreement' in locals() else []
+            "most_consistent_spans": (
+                [span for span, agreement in span_agreement.items() if agreement > 0.5]
+                if "span_agreement" in locals()
+                else []
+            ),
         }
 
 
 class FaithfulnessCoherence(MultiResponseCoherenceMeasure):
     """Coherence measure specialized for faithfulness evaluation."""
-    
-    def __init__(self, 
-                 config: Optional[MultiResponseConfig] = None,
-                 provider = None):
+
+    def __init__(self, config: Optional[MultiResponseConfig] = None, provider=None):
         if config is None:
             from coherify.measures.hybrid import HybridCoherence
+
             base_measure = HybridCoherence()
             config = MultiResponseConfig(
                 num_responses=3,
                 temperature_range=(0.1, 0.4),  # Lower for faithful summarization
-                consistency_threshold=0.8
+                consistency_threshold=0.8,
             )
         else:
             from coherify.measures.hybrid import HybridCoherence
+
             base_measure = HybridCoherence()
-        
+
         super().__init__(base_measure, config, provider)
-    
-    def evaluate_source_summary_coherence(self, 
-                                        source: str,
-                                        summary: str,
-                                        context: Optional[str] = None) -> Dict[str, Any]:
+
+    def evaluate_source_summary_coherence(
+        self, source: str, summary: str, context: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Evaluate coherence between source document and summary.
-        
+
         Core functionality for FaithBench-style faithfulness evaluation.
         """
         # Create proposition sets
         source_sentences = self._segment_text(source)
         summary_sentences = self._segment_text(summary)
-        
-        source_props = [Proposition(text=sent, metadata={"type": "source"}) 
-                       for sent in source_sentences]
-        summary_props = [Proposition(text=sent, metadata={"type": "summary"}) 
-                        for sent in summary_sentences]
-        
+
+        source_props = [
+            Proposition(text=sent, metadata={"type": "source"})
+            for sent in source_sentences
+        ]
+        summary_props = [
+            Proposition(text=sent, metadata={"type": "summary"})
+            for sent in summary_sentences
+        ]
+
         # Evaluate source-summary coherence
         combined_props = source_props + summary_props
         combined_set = PropositionSet(
             propositions=combined_props,
-            context=context or "Source-summary faithfulness evaluation"
+            context=context or "Source-summary faithfulness evaluation",
         )
-        
+
         source_summary_result = self.base_measure.compute(combined_set)
-        
+
         # Evaluate summary internal coherence
         if len(summary_props) > 1:
             summary_only_set = PropositionSet(
-                propositions=summary_props,
-                context="Summary internal coherence"
+                propositions=summary_props, context="Summary internal coherence"
             )
             summary_coherence_result = self.base_measure.compute(summary_only_set)
             summary_coherence = summary_coherence_result.score
         else:
             summary_coherence = 1.0
-        
+
         # Combined faithfulness score (emphasize source-summary coherence)
-        faithfulness_score = (source_summary_result.score * 0.8 + summary_coherence * 0.2)
-        
+        faithfulness_score = source_summary_result.score * 0.8 + summary_coherence * 0.2
+
         return {
             "source_summary_coherence": source_summary_result.score,
             "summary_internal_coherence": summary_coherence,
             "overall_faithfulness": faithfulness_score,
             "num_source_sentences": len(source_sentences),
             "num_summary_sentences": len(summary_sentences),
-            "faithfulness_verdict": "faithful" if faithfulness_score > self.config.consistency_threshold else "potentially_hallucinated"
+            "faithfulness_verdict": (
+                "faithful"
+                if faithfulness_score > self.config.consistency_threshold
+                else "potentially_hallucinated"
+            ),
         }
-    
+
     def _segment_text(self, text: str) -> List[str]:
         """Simple text segmentation into sentences."""
         sentences = []
         current = ""
-        
+
         for char in text:
             current += char
-            if char in '.!?' and len(current.strip()) > 10:
+            if char in ".!?" and len(current.strip()) > 10:
                 sentences.append(current.strip())
                 current = ""
-        
+
         if current.strip():
             sentences.append(current.strip())
-        
+
         return sentences
