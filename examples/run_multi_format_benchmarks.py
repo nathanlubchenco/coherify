@@ -634,10 +634,17 @@ class MultiBenchmarkRunner:
         return results
     
     def _load_faithbench_data(self, sample_size: int) -> List[Dict[str, Any]]:
-        """Load FaithBench dataset (mock for now)."""
+        """Load FaithBench dataset."""
         print("  📥 Loading FaithBench data...")
         
-        # Create comprehensive mock FaithBench data (subset from the full example)
+        # Try to load real FaithBench data first
+        real_data = self._load_real_faithbench_data()
+        if real_data:
+            print(f"    ✅ Loaded {len(real_data)} real FaithBench samples")
+            return real_data[:sample_size]
+        
+        # Fallback to mock data
+        print("    🔧 Using mock FaithBench data...")
         mock_data = [
             # Faithful summary - no hallucinations
             {
@@ -731,8 +738,92 @@ class MultiBenchmarkRunner:
             }
         ]
         
-        print(f"  ✅ Using {min(len(mock_data), sample_size)} FaithBench samples (mock data)")
+        print(f"    ✅ Using {min(len(mock_data), sample_size)} FaithBench samples (mock data)")
         return mock_data[:sample_size]
+    
+    def _load_real_faithbench_data(self) -> Optional[List[Dict[str, Any]]]:
+        """Load real FaithBench data from GitHub repository."""
+        try:
+            import requests
+            
+            # FaithBench data URL
+            url = "https://raw.githubusercontent.com/vectara/FaithBench/main/data_for_release/batch_1.json"
+            
+            print(f"    🌐 Downloading from {url.split('/')[-1]}...")
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse JSON data
+            try:
+                json_data = json.loads(response.text)
+                samples = json_data.get("samples", [])
+                
+                data = []
+                for sample in samples:
+                    # Convert to expected format
+                    formatted_sample = self._format_faithbench_sample(sample)
+                    if formatted_sample:
+                        data.append(formatted_sample)
+            except json.JSONDecodeError:
+                return None
+            
+            return data if data else None
+            
+        except Exception as e:
+            print(f"    ❌ Failed to download real FaithBench data: {e}")
+            return None
+    
+    def _format_faithbench_sample(self, raw_sample: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Format raw FaithBench sample to expected structure."""
+        try:
+            formatted = {
+                "sample_id": raw_sample.get("id", raw_sample.get("sample_id", 0)),
+                "source": raw_sample.get("source", raw_sample.get("document", "")),
+                "summary": raw_sample.get("summary", raw_sample.get("claim", "")),
+                "annotations": [],
+                "metadata": {}
+            }
+            
+            # Process annotations if available
+            annotations = raw_sample.get("annotations", raw_sample.get("labels", []))
+            if annotations:
+                for i, ann in enumerate(annotations):
+                    if isinstance(ann, dict):
+                        formatted_ann = {
+                            "annot_id": ann.get("id", i),
+                            "annotator_id": ann.get("annotator_id", f"annotator_{i}"),
+                            "annotator_name": ann.get("annotator_name", f"Annotator_{i}"),
+                            "label": ann.get("label", ann.get("labels", [])),
+                            "note": ann.get("note", ann.get("explanation", "")),
+                            "summary_span": ann.get("summary_span", ann.get("span", "")),
+                            "summary_start": ann.get("summary_start", ann.get("start", 0)),
+                            "summary_end": ann.get("summary_end", ann.get("end", 0)),
+                            "source_span": ann.get("source_span"),
+                            "source_start": ann.get("source_start"),
+                            "source_end": ann.get("source_end")
+                        }
+                        formatted["annotations"].append(formatted_ann)
+            
+            # Process metadata
+            metadata = raw_sample.get("metadata", {})
+            formatted["metadata"] = {
+                "summarizer": metadata.get("summarizer", raw_sample.get("model", "unknown")),
+                "hhemv1": metadata.get("hhemv1"),
+                "hhem-2.1": metadata.get("hhem-2.1"),
+                "trueteacher": metadata.get("trueteacher"),
+                "true_nli": metadata.get("true_nli"),
+                "gpt_3.5_turbo": metadata.get("gpt_3.5_turbo"),
+                "gpt_4o": metadata.get("gpt_4o")
+            }
+            
+            # Ensure we have source and summary
+            if not formatted["source"] or not formatted["summary"]:
+                return None
+            
+            return formatted
+            
+        except Exception:
+            return None
     
     def _analyze_faithfulness_coherence(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze coherence specific to faithfulness evaluation."""
