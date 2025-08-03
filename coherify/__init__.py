@@ -28,6 +28,17 @@ from coherify.generation import (
     CoherenceFilter, AdaptiveCoherenceFilter, MultiStageFilter,
     CoherenceGuidedGenerator, StreamingCoherenceGuide
 )
+from coherify.providers import (
+    ModelProvider, ModelResponse, OpenAIProvider, AnthropicProvider,
+    ProviderManager, get_provider_manager, get_provider, setup_providers
+)
+from coherify.measures.api_enhanced import (
+    APICoherenceConfig, APIEnhancedSemanticCoherence, 
+    APIEnhancedEntailmentCoherence, APIEnhancedHybridCoherence
+)
+from coherify.benchmarks.api_enhanced import (
+    APIBenchmarkConfig, APIEnhancedQAAdapter, APIBenchmarkEvaluator
+)
 
 __all__ = [
     "CoherenceResult",
@@ -68,4 +79,19 @@ __all__ = [
     "MultiStageFilter",
     "CoherenceGuidedGenerator",
     "StreamingCoherenceGuide",
+    "ModelProvider",
+    "ModelResponse",
+    "OpenAIProvider", 
+    "AnthropicProvider",
+    "ProviderManager",
+    "get_provider_manager",
+    "get_provider",
+    "setup_providers",
+    "APICoherenceConfig",
+    "APIEnhancedSemanticCoherence",
+    "APIEnhancedEntailmentCoherence", 
+    "APIEnhancedHybridCoherence",
+    "APIBenchmarkConfig",
+    "APIEnhancedQAAdapter",
+    "APIBenchmarkEvaluator",
 ]
