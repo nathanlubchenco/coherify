@@ -156,16 +156,17 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
         
         # Initialize NLI pipeline for confidence estimation
         try:
-            self.classifier = pipeline(
+            from coherify.utils.transformers_utils import create_pipeline_with_suppressed_warnings
+            self.classifier = create_pipeline_with_suppressed_warnings(
                 "text-classification",
-                model="facebook/bart-large-mnli",
+                "facebook/bart-large-mnli",
                 return_all_scores=True
             )
         except:
             # Fallback to a simpler model
-            self.classifier = pipeline(
+            self.classifier = create_pipeline_with_suppressed_warnings(
                 "text-classification",
-                model="cross-encoder/nli-deberta-v3-base",
+                "cross-encoder/nli-deberta-v3-base",
                 return_all_scores=True
             )
     
@@ -195,7 +196,8 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
                 input_text = text
             
             # Get classification scores
-            results = self.classifier(input_text)
+            from coherify.utils.transformers_utils import safe_pipeline_call
+            results = safe_pipeline_call(self.classifier, input_text)
             
             # Extract entailment/positive confidence
             if isinstance(results, list) and len(results) > 0:

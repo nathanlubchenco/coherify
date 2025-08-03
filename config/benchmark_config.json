@@ -1,0 +1,22 @@
+{
+  "truthfulqa": {
+    "sample_size": 50,
+    "evaluation_mode": "generation",
+    "use_api_enhancement": true,
+    "coherence_measures": [
+      "SemanticCoherence",
+      "HybridCoherence",
+      "APIEnhancedHybridCoherence"
+    ]
+  },
+  "api_settings": {
+    "use_temperature_variance": true,
+    "temperature_range": [
+      0.3,
+      0.7,
+      1.0
+    ],
+    "num_generations_per_prompt": 2,
+    "enable_confidence_scoring": true
+  }
+}

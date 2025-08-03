@@ -41,27 +41,27 @@ class EntailmentCoherence(CoherenceMeasure):
     def _get_default_nli_model(self) -> NLIModel:
         """Get default NLI model using transformers."""
         try:
-            from transformers import pipeline
+            from coherify.utils.transformers_utils import create_pipeline_with_suppressed_warnings
             
-            # Use a lightweight, fast NLI model
-            model = pipeline(
+            # Use a modern, compatible NLI model
+            model = create_pipeline_with_suppressed_warnings(
                 "text-classification",
-                model="microsoft/DialoGPT-medium",  # Fallback model
+                "microsoft/DialoGPT-medium",  # Fallback model
                 return_all_scores=True
             )
             
             # Try to use a proper NLI model
             try:
-                model = pipeline(
+                model = create_pipeline_with_suppressed_warnings(
                     "text-classification",
-                    model="facebook/bart-large-mnli",
+                    "facebook/bart-large-mnli",
                     return_all_scores=True
                 )
             except:
                 # Fallback to a smaller model
-                model = pipeline(
+                model = create_pipeline_with_suppressed_warnings(
                     "text-classification", 
-                    model="cross-encoder/nli-deberta-v3-base",
+                    "cross-encoder/nli-deberta-v3-base",
                     return_all_scores=True
                 )
             
@@ -228,7 +228,8 @@ class HuggingFaceNLIWrapper:
         
         try:
             # Get prediction
-            result = self.pipeline(input_text)
+            from coherify.utils.transformers_utils import safe_pipeline_call
+            result = safe_pipeline_call(self.pipeline, input_text)
             
             # Handle different output formats
             if isinstance(result, list) and len(result) > 0:
