@@ -7,6 +7,7 @@ Welcome to the Coherify documentation! This directory contains comprehensive gui
 ### 📖 Core Documentation
 
 - **[Operational Guide](OPERATIONAL_GUIDE.md)** - Complete guide to costs, performance, and scaling
+- **[Multi-Format Benchmarks](MULTI_FORMAT_BENCHMARKS.md)** - Guide to GSM8K, HellaSwag, MMLU, and multi-response evaluation
 - **[Getting Started](../GETTING_STARTED.md)** - Quick start guide for running benchmarks
 - **[Main README](../README.md)** - Library overview and basic usage
 
@@ -24,6 +25,8 @@ Welcome to the Coherify documentation! This directory contains comprehensive gui
 
 - **[Basic Usage](../examples/basic_usage.py)** - Getting started with core functionality
 - **[TruthfulQA Runner](../examples/run_truthfulqa_benchmark.py)** - Complete benchmark runner
+- **[Multi-Format Benchmarks](../examples/run_multi_format_benchmarks.py)** - GSM8K, HellaSwag, MMLU evaluation
+- **[Multi-Format Basic Test](../examples/test_multi_format_basic.py)** - Test multi-format functionality
 - **[API Providers Demo](../examples/api_providers_demo.py)** - External API integration
 - **[Practical Applications](../examples/practical_applications.py)** - Real-world use cases
 
@@ -33,14 +36,16 @@ Welcome to the Coherify documentation! This directory contains comprehensive gui
 1. [Getting Started Guide](../GETTING_STARTED.md)
 2. [Benchmark Requirements](../BENCHMARK_REQUIREMENTS.md)  
 3. [Basic Usage Example](../examples/basic_usage.py)
+4. [Multi-Format Basic Test](../examples/test_multi_format_basic.py)
 
 ### Planning Your Benchmarks
 1. [Operational Guide](OPERATIONAL_GUIDE.md) - Comprehensive cost/performance analysis
 2. [Benchmark Calculator](../scripts/benchmark_calculator.py) - Interactive planning tool
 
 ### Advanced Features
-1. [API Providers Demo](../examples/api_providers_demo.py) - External model integration
-2. [Practical Applications](../examples/practical_applications.py) - Production examples
+1. [Multi-Format Benchmarks Guide](MULTI_FORMAT_BENCHMARKS.md) - GSM8K, HellaSwag, MMLU, multi-response evaluation
+2. [API Providers Demo](../examples/api_providers_demo.py) - External model integration
+3. [Practical Applications](../examples/practical_applications.py) - Production examples
 
 ## 📋 Documentation Standards
 
@@ -127,11 +132,17 @@ docs/
 # Quick setup verification
 python scripts/setup_benchmarks.py
 
+# Test multi-format benchmarks (no API required)
+python examples/test_multi_format_basic.py
+
 # Plan your benchmark
 python scripts/benchmark_calculator.py --sample-size 100 --comparison
 
 # Run your first benchmark
 python examples/run_truthfulqa_benchmark.py --sample-size 10
+
+# Try multi-format evaluation
+python examples/run_multi_format_benchmarks.py --sample-size 10
 ```
 
 **Need help?** Check the [Operational Guide](OPERATIONAL_GUIDE.md) for comprehensive information about costs, performance, and best practices!

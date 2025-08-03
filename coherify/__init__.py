@@ -40,6 +40,13 @@ from coherify.benchmarks.api_enhanced import (
     APIBenchmarkConfig, APIEnhancedQAAdapter, APIBenchmarkEvaluator
 )
 from coherify.utils.clean_output import enable_clean_output, clean_output, enable_clean_mode
+from coherify.measures.multi_response import (
+    MultiResponseConfig, MultiResponseCoherenceMeasure, 
+    TemperatureVarianceCoherence, SelfConsistencyCoherence
+)
+from coherify.benchmarks.multi_format_adapters import (
+    MultiResponseBenchmarkConfig, GSM8KAdapter, HellaSwagAdapter, MMLUAdapter
+)
 
 __all__ = [
     "CoherenceResult",
@@ -98,4 +105,12 @@ __all__ = [
     "enable_clean_output",
     "clean_output", 
     "enable_clean_mode",
+    "MultiResponseConfig",
+    "MultiResponseCoherenceMeasure",
+    "TemperatureVarianceCoherence", 
+    "SelfConsistencyCoherence",
+    "MultiResponseBenchmarkConfig",
+    "GSM8KAdapter",
+    "HellaSwagAdapter",
+    "MMLUAdapter",
 ]

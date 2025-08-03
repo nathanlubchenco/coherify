@@ -17,6 +17,9 @@ Coherify is a comprehensive Python library that implements philosophical coheren
 - **Traditional Shogenji**: Classical probability-based coherence measure
 
 ### Advanced Capabilities
+- **Multi-Format Benchmarks**: GSM8K (math), HellaSwag (reasoning), MMLU (knowledge)
+- **Multi-Response Evaluation**: Generate k responses, evaluate consistency and uncertainty
+- **Temperature Variance Analysis**: Detect model confidence through response consistency
 - **RAG Integration**: Coherence-guided retrieval and reranking
 - **Generation Guidance**: Beam search with coherence optimization
 - **Scalability**: Approximation algorithms for large proposition sets
@@ -128,6 +131,110 @@ measure = HybridCoherence(
 )
 result = measure.compute(prop_set)
 print(f"Hybrid coherence: {result.score:.3f}")
+```
+
+## 🎯 Multi-Format Benchmarks
+
+### Mathematical Reasoning (GSM8K)
+
+```python
+from coherify import GSM8KAdapter, TemperatureVarianceCoherence, MultiResponseBenchmarkConfig
+
+# Setup multi-response evaluation for math problems
+config = MultiResponseBenchmarkConfig(
+    num_responses_per_sample=3,
+    temperature_range=(0.3, 0.8),
+    reasoning_trace_enabled=True
+)
+
+adapter = GSM8KAdapter(config=config, provider=provider)
+
+# Evaluate mathematical reasoning consistency
+sample = {
+    "question": "Janet's ducks lay 16 eggs per day. She eats 3 for breakfast and uses 4 for muffins. How much does she make selling the rest at $2 each?",
+    "answer": "She uses 3 + 4 = 7 eggs. She has 16 - 7 = 9 eggs left. She makes 9 × $2 = $18. #### 18"
+}
+
+result = adapter.adapt_single_with_multi_response(sample)
+print(f"Mathematical coherence: {result['response_evaluation']['accuracy']:.1%}")
+```
+
+### Commonsense Reasoning (HellaSwag)
+
+```python
+from coherify import HellaSwagAdapter, SelfConsistencyCoherence
+
+# Test consistency in commonsense reasoning
+config = MultiResponseBenchmarkConfig(
+    num_responses_per_sample=4,
+    use_self_consistency=True
+)
+
+adapter = HellaSwagAdapter(config=config, provider=provider)
+
+sample = {
+    "ctx": "A woman is outside with a bucket and a dog. The dog is running around trying to avoid a bath. She",
+    "endings": [
+        "rinses the bucket off with soap and blow dry the dog.",
+        "uses a hose to keep washing the dog.",
+        "gets the dog wet, then it runs away again.",
+        "gets into a bathtub with the dog."
+    ],
+    "label": 2
+}
+
+result = adapter.adapt_single_with_multi_response(sample)
+print(f"Choice consistency: {result['response_evaluation']['is_consistent']}")
+```
+
+### Knowledge Consistency (MMLU)
+
+```python
+from coherify import MMLUAdapter
+
+# Evaluate cross-domain knowledge consistency
+config = MultiResponseBenchmarkConfig(
+    temperature_range=(0.1, 0.5),  # Lower temps for factual accuracy
+    reasoning_trace_enabled=True
+)
+
+adapter = MMLUAdapter(config=config, provider=provider)
+
+sample = {
+    "question": "Which of the following is the basic unit of life?",
+    "choices": ["Atom", "Molecule", "Cell", "Tissue"],
+    "answer": 2,
+    "subject": "biology"
+}
+
+result = adapter.adapt_single_with_multi_response(sample)
+print(f"Knowledge coherence: {result['response_evaluation']['subject_coherence']:.3f}")
+```
+
+### Multi-Response Coherence Analysis
+
+```python
+# Generate multiple responses and analyze consistency
+measure = TemperatureVarianceCoherence(provider=provider)
+
+# Analyze temperature effects on coherence
+temp_analysis = measure.evaluate_temperature_consistency(
+    prompt="What is 15% of 80?",
+    context="Percentage calculation"
+)
+
+print(f"Optimal temperature: {temp_analysis['optimal_temperature']:.1f}")
+print(f"Consistency: {temp_analysis['consistency_verdict']}")
+print(f"Temperature-coherence correlation: {temp_analysis['temperature_coherence_correlation']:.3f}")
+
+# Self-consistency evaluation
+consistency_measure = SelfConsistencyCoherence(provider=provider)
+self_result = consistency_measure.evaluate_self_consistency(
+    prompt="Solve: 2x + 5 = 11"
+)
+
+print(f"Self-consistent: {self_result['is_self_consistent']}")
+print(f"Majority response: {self_result['majority_response']['majority_response']}")
 ```
 
 ## 🔍 Practical Applications
@@ -354,6 +461,9 @@ result = custom_measure.compute(prop_set)
 The `examples/` directory contains comprehensive demonstrations:
 
 - `basic_usage.py` - Getting started with core functionality
+- `run_truthfulqa_benchmark.py` - Complete TruthfulQA evaluation
+- `run_multi_format_benchmarks.py` - GSM8K, HellaSwag, MMLU evaluation with multi-response
+- `test_multi_format_basic.py` - Quick test of multi-format functionality (no API required)
 - `phase2_features.py` - Advanced measures and caching
 - `phase3_features.py` - Visualization and traditional measures
 - `rag_integration.py` - RAG system optimization
