@@ -371,7 +371,31 @@ coherify/
 ├── utils/          # Caching, visualization, utilities
 ├── rag/            # RAG integration and optimization
 ├── approximation/  # Scalability and approximation algorithms
-└── generation/     # Generation guidance and filtering
+├── generation/     # Generation guidance and filtering
+└── providers/      # External API integrations (OpenAI, Anthropic)
+```
+
+## 📊 Operational Characteristics
+
+### Quick Performance Reference
+
+| Operation | Time | Cost | Best For |
+|-----------|------|------|----------|
+| **Local Evaluation** (100 samples) | 44 seconds | FREE | Development, testing |
+| **API Enhanced** (100 samples) | 17 minutes | $0.45 | Quality analysis |
+| **Full TruthfulQA** (817 samples) | 6 minutes | FREE | Research evaluation |
+
+### Cost-Effective Options
+
+- **Development**: Local processing (FREE, 1-6 minutes)
+- **API Testing**: Claude-3 Haiku ($0.03 for full dataset)
+- **Research**: GPT-4 Turbo Enhanced ($3.64 for full dataset)
+
+**📋 For detailed cost analysis and planning:** See [Operational Guide](docs/OPERATIONAL_GUIDE.md)
+
+**🧮 Calculate costs for your scenario:**
+```bash
+python scripts/benchmark_calculator.py --sample-size 100 --comparison
 ```
 
 ### Development Setup
