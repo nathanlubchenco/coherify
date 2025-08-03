@@ -47,6 +47,9 @@ from coherify.measures.multi_response import (
 from coherify.benchmarks.multi_format_adapters import (
     MultiResponseBenchmarkConfig, GSM8KAdapter, HellaSwagAdapter, MMLUAdapter
 )
+from coherify.benchmarks.fever_adapter import (
+    FEVERAdapter, FEVERConfig, EvidenceBasedCoherence
+)
 
 __all__ = [
     "CoherenceResult",
@@ -113,4 +116,7 @@ __all__ = [
     "GSM8KAdapter",
     "HellaSwagAdapter",
     "MMLUAdapter",
+    "FEVERAdapter",
+    "FEVERConfig",
+    "EvidenceBasedCoherence",
 ]

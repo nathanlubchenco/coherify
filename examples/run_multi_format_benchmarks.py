@@ -47,6 +47,10 @@ from coherify.benchmarks.multi_format_adapters import (
     MultiResponseBenchmarkConfig
 )
 
+from coherify.benchmarks.fever_adapter import (
+    FEVERAdapter, FEVERConfig, EvidenceBasedCoherence
+)
+
 
 class MultiBenchmarkRunner:
     """Runner for multiple benchmark formats with coherence evaluation."""
@@ -471,6 +475,119 @@ class MultiBenchmarkRunner:
         
         return analysis
     
+    def run_fever_benchmark(self, sample_size: int = 15) -> Dict[str, Any]:
+        """Run FEVER fact-checking benchmark."""
+        print(f"\n🔍 Running FEVER Fact-Checking Benchmark")
+        print("=" * 60)
+        
+        # Load FEVER data (using mock data for now)
+        data = self._load_fever_data(sample_size)
+        if not data:
+            return {"error": "Failed to load FEVER data"}
+        
+        # Setup adapter
+        config = FEVERConfig(
+            enable_multi_response=self.use_api,
+            num_responses_per_sample=3,
+            temperature_range=(0.1, 0.6),
+            reasoning_trace_enabled=True,
+            evidence_coherence_weight=0.7
+        )
+        
+        adapter = FEVERAdapter(config=config, provider=self.provider)
+        
+        # Setup coherence measures
+        measures = [
+            HybridCoherence(),
+            EvidenceBasedCoherence(provider=self.provider)
+        ]
+        
+        if self.use_api:
+            measures.append(TemperatureVarianceCoherence(provider=self.provider))
+        
+        # Run evaluation
+        results = self._evaluate_benchmark(data, adapter, measures, "FEVER")
+        
+        # Analyze fact-checking coherence
+        factcheck_analysis = self._analyze_factchecking_coherence(results)
+        results["factchecking_analysis"] = factcheck_analysis
+        
+        return results
+    
+    def _load_fever_data(self, sample_size: int) -> List[Dict[str, Any]]:
+        """Load FEVER dataset (mock for now)."""
+        print("  📥 Loading FEVER data...")
+        
+        # Create comprehensive mock FEVER data
+        mock_data = [
+            {
+                "id": 1,
+                "claim": "Barack Obama was the 44th President of the United States.",
+                "label": "SUPPORTS",
+                "evidence": [[[101, 1001, "Barack_Obama", 0]]]
+            },
+            {
+                "id": 2,
+                "claim": "The Earth is flat and has no curvature.",
+                "label": "REFUTES", 
+                "evidence": [[[102, 2001, "Earth", 5]]]
+            },
+            {
+                "id": 3,
+                "claim": "John Smith ate breakfast this morning at 7:30 AM.",
+                "label": "NOT ENOUGH INFO",
+                "evidence": [[[103, 3001, None, None]]]
+            },
+            {
+                "id": 4,
+                "claim": "Albert Einstein developed the theory that led to nuclear weapons.",
+                "label": "SUPPORTS",
+                "evidence": [[[104, 4001, "Albert_Einstein", 3], [104, 4002, "E=mc²", 0]]]
+            },
+            {
+                "id": 5,
+                "claim": "Water boils at 100 degrees Celsius at sea level pressure.",
+                "label": "SUPPORTS",
+                "evidence": [[[105, 5001, "Water", 8], [105, 5002, "Boiling_point", 2]]]
+            }
+        ]
+        
+        print(f"  ✅ Using {min(len(mock_data), sample_size)} FEVER samples (mock data)")
+        return mock_data[:sample_size]
+    
+    def _analyze_factchecking_coherence(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze coherence specific to fact-checking tasks."""
+        analysis = {
+            "evidence_consistency": 0.0,
+            "claim_verification_coherence": 0.0,
+            "multi_evidence_coherence": 0.0
+        }
+        
+        multi_results = results.get("multi_response_results", [])
+        if not multi_results:
+            return analysis
+        
+        evidence_consistent_count = 0
+        high_coherence_count = 0
+        
+        for result in multi_results:
+            evaluation = result.get("response_evaluation", {})
+            
+            # Check evidence consistency
+            if evaluation.get("evidence_consistency", 0.0) > 0.6:
+                evidence_consistent_count += 1
+            
+            # Check overall coherence
+            if evaluation.get("fever_score", 0.0) > 0.7:
+                high_coherence_count += 1
+        
+        total = len(multi_results)
+        if total > 0:
+            analysis["evidence_consistency"] = evidence_consistent_count / total
+            analysis["claim_verification_coherence"] = high_coherence_count / total
+        
+        return analysis
+    
     def run_comparative_analysis(self, all_results: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """Run comparative analysis across all benchmarks."""
         print(f"\n📊 Running Comparative Analysis Across Benchmarks")
@@ -544,7 +661,7 @@ def main():
     """Main multi-benchmark runner."""
     parser = argparse.ArgumentParser(description="Run multi-format benchmarks with Coherify")
     parser.add_argument("--benchmarks", nargs="+", 
-                       choices=["gsm8k", "hellaswag", "mmlu", "all"],
+                       choices=["gsm8k", "hellaswag", "mmlu", "fever", "all"],
                        default=["all"],
                        help="Benchmarks to run")
     parser.add_argument("--use-api", action="store_true", 
@@ -590,7 +707,7 @@ def main():
     # Determine which benchmarks to run
     benchmarks_to_run = args.benchmarks
     if "all" in benchmarks_to_run:
-        benchmarks_to_run = ["gsm8k", "hellaswag", "mmlu"]
+        benchmarks_to_run = ["gsm8k", "hellaswag", "mmlu", "fever"]
     
     # Run benchmarks
     all_results = {}
@@ -604,6 +721,9 @@ def main():
         
         if "mmlu" in benchmarks_to_run:
             all_results["MMLU"] = runner.run_mmlu_benchmark(args.sample_size)
+        
+        if "fever" in benchmarks_to_run:
+            all_results["FEVER"] = runner.run_fever_benchmark(args.sample_size)
         
         # Run comparative analysis
         if len(all_results) > 1:
