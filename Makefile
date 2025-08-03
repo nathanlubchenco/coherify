@@ -20,7 +20,7 @@ install: ## Install package in production mode
 	$(PIP) install -e .
 
 install-dev: ## Install package with development dependencies
-	$(PIP) install -e ".[dev,benchmarks,viz,api]"
+	$(PIP) install -e ".[dev,benchmarks,viz,api,ui]"
 
 test: ## Run tests
 	$(PYTEST) $(TEST_DIR) -v
@@ -158,3 +158,10 @@ jupyter:
 .PHONY: shell ## Start Python shell with package imported
 shell:
 	$(PYTHON) -c "import coherify; print('Coherify imported successfully'); import IPython; IPython.start_ipython()"
+
+# UI commands
+ui: ## Launch the interactive Coherify UI
+	$(PYTHON) run_ui.py
+
+ui-dev: ## Launch UI in development mode with auto-reload
+	streamlit run ui/coherence_app.py --server.runOnSave true
