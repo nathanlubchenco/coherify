@@ -256,7 +256,10 @@ class MultiBenchmarkRunner:
                 try:
                     print(f"  📥 Loading MMLU {subject}...")
                     dataset = load_dataset("cais/mmlu", subject)
-                    subject_data = dataset["test"].select(range(min(sample_size // len(subjects), len(dataset["test"]))))
+                    # Ensure each subject gets at least 1 sample, distribute remaining samples
+                    base_samples = max(1, sample_size // len(subjects))
+                    max_samples = min(base_samples + 2, len(dataset["test"]))  # Allow some extra samples
+                    subject_data = dataset["test"].select(range(min(max_samples, len(dataset["test"]))))
                     
                     # Add subject info to each sample
                     for sample in subject_data:
@@ -519,9 +522,22 @@ class MultiBenchmarkRunner:
         return results
     
     def _load_fever_data(self, sample_size: int) -> List[Dict[str, Any]]:
-        """Load FEVER dataset (mock for now)."""
+        """Load FEVER dataset."""
         print("  📥 Loading FEVER data...")
         
+        # Try to load real FEVER data from Hugging Face
+        if HAS_DATASETS:
+            try:
+                print("    🌐 Loading FEVER from Hugging Face...")
+                dataset = load_dataset("kilt_tasks", "fever")
+                data = dataset["validation"].select(range(min(sample_size, len(dataset["validation"]))))
+                print(f"    ✅ Loaded {len(data)} real FEVER samples")
+                return list(data)
+            except Exception as e:
+                print(f"    ❌ Failed to load FEVER from Hugging Face: {e}")
+        
+        # Fallback to mock data
+        print("    🔧 Using mock FEVER data...")
         # Create comprehensive mock FEVER data
         mock_data = [
             {

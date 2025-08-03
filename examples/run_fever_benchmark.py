@@ -46,18 +46,10 @@ def load_fever_data(sample_size: Optional[int] = None) -> List[Dict[str, Any]]:
     if HAS_DATASETS:
         try:
             print("  📥 Loading FEVER from Hugging Face...")
-            # Note: FEVER dataset might not be directly available, using mock data
-            # dataset = load_dataset("fever", "v1.0")
-            # data = dataset["validation"]
-            
-            # For now, create comprehensive mock data that represents FEVER structure
-            mock_data = create_comprehensive_fever_mock_data()
-            
-            if sample_size:
-                mock_data = mock_data[:sample_size]
-            
-            print(f"  ✅ Using {len(mock_data)} FEVER samples (mock data)")
-            return mock_data
+            dataset = load_dataset("kilt_tasks", "fever")
+            data = dataset["validation"].select(range(min(sample_size or 10, len(dataset["validation"]))))
+            print(f"  ✅ Loaded {len(data)} real FEVER samples")
+            return list(data)
             
         except Exception as e:
             print(f"  ⚠️ Failed to load FEVER from datasets: {e}")
