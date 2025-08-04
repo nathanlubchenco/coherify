@@ -13,16 +13,16 @@ from pathlib import Path
 
 def main():
     """Launch the Streamlit app."""
-    # Get the path to the UI app
-    ui_path = Path(__file__).parent / "ui" / "coherence_app.py"
+    # Get the path to the optimized UI app
+    ui_path = Path(__file__).parent / "ui" / "coherence_app_v2.py"
     
     if not ui_path.exists():
         print(f"Error: UI app not found at {ui_path}")
         sys.exit(1)
     
-    print("🧠 Launching Coherify Interactive UI...")
-    print(f"📍 Starting Streamlit server...")
-    print(f"🌐 The app will open in your browser at http://localhost:8501")
+    print("⚡ Launching Coherify Professional UI...")
+    print(f"   Starting optimized Streamlit server...")
+    print(f"   App will open at http://localhost:8501")
     print("")
     print("Press Ctrl+C to stop the server")
     print("=" * 50)
@@ -36,9 +36,9 @@ def main():
             "--browser.gatherUsageStats", "false"
         ])
     except KeyboardInterrupt:
-        print("\n👋 Shutting down Coherify UI...")
+        print("\n   Shutting down Coherify UI...")
     except Exception as e:
-        print(f"❌ Error launching UI: {e}")
+        print(f"   Error launching UI: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

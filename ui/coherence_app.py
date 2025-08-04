@@ -116,9 +116,35 @@ def create_coherence_measures():
     
     # Add Shogenji if available (might fail due to model requirements)
     try:
+        # Create a wrapper class for normalized Shogenji coherence
+        class NormalizedShogunjiCoherence:
+            def __init__(self):
+                self.base_measure = ShogunjiCoherence()
+            
+            def compute(self, prop_set):
+                result = self.base_measure.compute(prop_set)
+                # Normalize the score to 0-1 using tanh transformation
+                # This keeps the relative ordering but makes scores more interpretable
+                import math
+                normalized_score = math.tanh(math.log(max(result.score, 1e-10)) / 10)
+                normalized_score = max(0, normalized_score)  # Ensure non-negative
+                
+                # Create new result with normalized score
+                from coherify.core.base import CoherenceResult
+                return CoherenceResult(
+                    score=normalized_score,
+                    measure_name="NormalizedShogunjiCoherence",
+                    details={
+                        **result.details,
+                        "original_shogenji_score": result.score,
+                        "normalization": "tanh(log(score)/10)"
+                    },
+                    computation_time=result.computation_time
+                )
+        
         measures["Shogenji Coherence"] = {
-            "measure": ShogunjiCoherence(),
-            "description": "Traditional probability-based coherence measure from philosophy.",
+            "measure": NormalizedShogunjiCoherence(),
+            "description": "Traditional probability-based coherence measure (normalized for intuitive 0-1 scale).",
             "color": MEASURE_COLORS["Shogenji Coherence"]
         }
     except Exception:
@@ -136,11 +162,26 @@ def compute_coherence_scores(prop_set, measures):
         status_text.text(f"Computing {name}...")
         try:
             result = config["measure"].compute(prop_set)
+            # Extract pairwise scores from different measures
+            pairwise_scores = []
+            if "pairwise_similarities" in result.details:
+                pairwise_scores = result.details["pairwise_similarities"]
+            elif "pairwise_scores" in result.details:
+                pairwise_scores = result.details["pairwise_scores"]
+            elif "pairwise_entailments" in result.details:
+                pairwise_scores = result.details["pairwise_entailments"]
+            
+            # Add additional info for normalized measures
+            description = config["description"]
+            if "original_shogenji_score" in result.details:
+                original_score = result.details["original_shogenji_score"]
+                description += f" (Original: {original_score:.1f})"
+            
             results[name] = {
                 "score": result.score,
-                "pairwise_scores": result.pairwise_scores,
+                "pairwise_scores": pairwise_scores,
                 "color": config["color"],
-                "description": config["description"]
+                "description": description
             }
         except Exception as e:
             st.warning(f"Could not compute {name}: {str(e)}")
@@ -198,12 +239,12 @@ def create_pairwise_heatmap(results, propositions):
     pairwise_scores = None
     
     for name, data in results.items():
-        if data.get("pairwise_scores") and len(data["pairwise_scores"]) > 0:
+        if "error" not in data and data.get("pairwise_scores") and len(data["pairwise_scores"]) > 0:
             measure_name = name
             pairwise_scores = data["pairwise_scores"]
             break
     
-    if not pairwise_scores:
+    if not pairwise_scores or not measure_name:
         return None
     
     # Create pairwise matrix

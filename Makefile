@@ -164,4 +164,4 @@ ui: ## Launch the interactive Coherify UI
 	$(PYTHON) run_ui.py
 
 ui-dev: ## Launch UI in development mode with auto-reload
-	streamlit run ui/coherence_app.py --server.runOnSave true
+	streamlit run ui/coherence_app_v2.py --server.runOnSave true

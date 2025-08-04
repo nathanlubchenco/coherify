@@ -146,3 +146,5 @@ checkpoints/
 
 # Claude Code hooks (can be customized per developer)
 .claude_hooks.json
+
+.coherify_cache/

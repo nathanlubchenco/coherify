@@ -139,14 +139,15 @@ class ModelBasedProbabilityEstimator(ProbabilityEstimator):
 
 class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
     """
-    Probability estimator using model confidence scores.
+    Improved probability estimator with better baseline probabilities.
 
-    This approach uses a classification model to estimate the confidence
-    that each proposition is true given the context.
+    This approach uses normalized probability estimates that give more
+    reasonable baseline values and can better detect contradictions.
     """
 
     def __init__(
-        self, model_name: str = "microsoft/DialoGPT-medium", use_cache: bool = True
+        self, model_name: str = "microsoft/DialoGPT-medium", use_cache: bool = True,
+        baseline_prob: float = 0.5, prob_range: tuple = (0.2, 0.8)
     ):
         """
         Initialize confidence-based estimator.
@@ -154,9 +155,13 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
         Args:
             model_name: Model for confidence estimation
             use_cache: Whether to cache computations
+            baseline_prob: Default probability for neutral statements
+            prob_range: (min, max) probability range to avoid extreme values
         """
         self.model_name = model_name
         self.use_cache = use_cache
+        self.baseline_prob = baseline_prob
+        self.min_prob, self.max_prob = prob_range
 
         # Initialize NLI pipeline for confidence estimation
         try:
@@ -192,14 +197,14 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
         return self._compute_confidence(text, context)
 
     def _compute_confidence(self, text: str, context: str) -> float:
-        """Compute confidence using NLI model."""
+        """Compute confidence using NLI model with improved probability mapping."""
         try:
             if context:
                 # Format as entailment question
                 input_text = f"{context} </s></s> {text}"
             else:
-                # Use text alone
-                input_text = text
+                # Use text alone - assume neutral context
+                input_text = f"Given the current situation, {text}"
 
             # Get classification scores
             from coherify.utils.transformers_utils import safe_pipeline_call
@@ -207,6 +212,8 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
             results = safe_pipeline_call(self.classifier, input_text)
 
             # Extract entailment/positive confidence
+            raw_confidence = self.baseline_prob
+            
             if isinstance(results, list) and len(results) > 0:
                 if isinstance(results[0], list):
                     scores = results[0]
@@ -217,32 +224,99 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
                 for score_dict in scores:
                     label = score_dict.get("label", "").upper()
                     if "ENTAILMENT" in label or "POSITIVE" in label or label == "0":
-                        return score_dict.get("score", 0.5)
+                        raw_confidence = score_dict.get("score", self.baseline_prob)
+                        break
 
                 # If no specific label found, use highest score
-                if scores:
-                    return max(scores, key=lambda x: x.get("score", 0))["score"]
+                if raw_confidence == self.baseline_prob and scores:
+                    highest_score = max(scores, key=lambda x: x.get("score", 0))
+                    raw_confidence = highest_score.get("score", self.baseline_prob)
 
-            return 0.5
+            # Map raw confidence to a reasonable probability range
+            # Transform from [0,1] to [min_prob, max_prob] with baseline_prob as midpoint
+            if raw_confidence >= self.baseline_prob:
+                # Map [baseline, 1] -> [baseline, max_prob]
+                normalized = self.baseline_prob + (raw_confidence - self.baseline_prob) * (self.max_prob - self.baseline_prob) / (1 - self.baseline_prob)
+            else:
+                # Map [0, baseline] -> [min_prob, baseline]
+                normalized = self.min_prob + raw_confidence * (self.baseline_prob - self.min_prob) / self.baseline_prob
+
+            return max(min(normalized, self.max_prob), self.min_prob)
 
         except Exception as e:
             print(f"Warning: Confidence estimation failed: {e}")
-            return 0.5
+            return self.baseline_prob
 
     def estimate_joint_probability(
         self, propositions: List[Proposition], context: Optional[str] = None
     ) -> float:
-        """Estimate joint probability as product of individual probabilities."""
+        """Estimate joint probability with contradiction detection."""
         if len(propositions) == 0:
             return 1.0
+        elif len(propositions) == 1:
+            return self.estimate_probability(propositions[0], context)
 
-        # Simple independence assumption for joint probability
+        # Get individual probabilities
         individual_probs = [
             self.estimate_probability(prop, context) for prop in propositions
         ]
 
-        # Use geometric mean to avoid overly small probabilities
-        return np.exp(np.mean(np.log(individual_probs)))
+        # Check for contradictions using NLI between propositions
+        max_contradiction_score = 0.0
+        contradiction_count = 0
+        
+        try:
+            # Test pairwise contradictions
+            for i in range(len(propositions)):
+                for j in range(i + 1, len(propositions)):
+                    prop1_text = propositions[i].text
+                    prop2_text = propositions[j].text
+                    
+                    # Format as contradiction test
+                    input_text = f"{prop1_text} </s></s> {prop2_text}"
+                    
+                    from coherify.utils.transformers_utils import safe_pipeline_call
+                    results = safe_pipeline_call(self.classifier, input_text)
+                    
+                    if isinstance(results, list) and len(results) > 0:
+                        if isinstance(results[0], list):
+                            scores = results[0]
+                        else:
+                            scores = results
+                        
+                        # Look for contradiction label
+                        for score_dict in scores:
+                            label = score_dict.get("label", "").upper()
+                            if "CONTRADICTION" in label or label == "2":
+                                contradiction_score = score_dict.get("score", 0)
+                                max_contradiction_score = max(max_contradiction_score, contradiction_score)
+                                if contradiction_score > 0.7:  # Strong contradiction threshold
+                                    contradiction_count += 1
+                                
+        except Exception as e:
+            # If contradiction detection fails, fall back to independence assumption
+            pass
+
+        # Calculate joint probability with strong contradiction penalty
+        independence_prob = np.exp(np.mean(np.log(individual_probs)))
+        
+        if max_contradiction_score > 0.7:
+            # Strong contradiction detected - dramatically reduce joint probability
+            # Use exponential penalty based on contradiction strength and count
+            penalty = np.exp(-8 * max_contradiction_score * (1 + contradiction_count * 0.3))
+            joint_prob = independence_prob * penalty
+        else:
+            # Weak or no contradiction - apply mild penalty
+            penalty = 1 - max_contradiction_score * 0.4
+            joint_prob = independence_prob * penalty
+        
+        # Ensure result is within reasonable bounds, but allow very low probabilities for strong contradictions
+        if max_contradiction_score > 0.8:
+            # Allow very low joint probabilities for strong contradictions
+            return max(min(joint_prob, self.max_prob), 0.001)
+        else:
+            # Normal bounds for weak or no contradictions
+            return max(min(joint_prob, self.max_prob), self.min_prob)
 
 
 class EnsembleProbabilityEstimator(ProbabilityEstimator):

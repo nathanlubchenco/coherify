@@ -152,6 +152,23 @@ MEASURE_EXPLANATIONS = {
         **Limitations**: May dilute strong signals from individual measures
         **Best for**: General purpose coherence analysis, balanced evaluation
         """
+    },
+    "Shogenji Coherence": {
+        "short": "Traditional probability-based coherence measure (normalized for intuitive 0-1 scale).",
+        "detailed": """
+        The Shogenji coherence measure is the classical approach from philosophy:
+        
+        1. **Formula**: C_S = P(H1 ∧ H2 ∧ ... ∧ Hn) / ∏P(Hi)
+        2. **Interpretation**: How much more likely the propositions are together vs independently
+        3. **Normalization**: Applied tanh transformation for intuitive 0-1 scale
+        
+        **Strengths**: Theoretically grounded, captures probabilistic coherence
+        **Limitations**: Can be extremely large, sensitive to probability estimation
+        **Best for**: Theoretical analysis, understanding classical coherence theory
+        
+        **Note**: Raw Shogenji scores can range from 0 to infinity. We normalize using 
+        tanh(log(score)/10) to keep values interpretable while preserving ordering.
+        """
     }
 }
 
