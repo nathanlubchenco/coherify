@@ -167,6 +167,7 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
             "sample_size": len(data),
             "evaluation_mode": "generation",
             "include_contrastive": True,
+            "coherence_threshold": 0.6,  # For filtering
         }
         
         results = evaluator.evaluate_dataset_with_comprehensive_report(
@@ -176,6 +177,21 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
         # Show summary
         print(f"  📈 Results Summary:")
         print(f"    Mean Coherence: {results['mean_coherence']:.3f}")
+        
+        # Show native metrics
+        if "native_metrics" in results:
+            native = results["native_metrics"]
+            print(f"  📏 Native TruthfulQA Metrics:")
+            print(f"    Truthfulness: {native.get('truthful_score', 0):.3f}")
+            print(f"    Informativeness: {native.get('informative_score', 0):.3f}")
+            
+            if native.get('coherence_filtered_accuracy') is not None:
+                print(f"    Baseline Accuracy: {native['baseline_accuracy']:.3f}")
+                print(f"    Coherence-Filtered: {native['coherence_filtered_accuracy']:.3f}")
+                if native.get('improvement') is not None:
+                    sign = "+" if native['improvement'] >= 0 else ""
+                    print(f"    Improvement: {sign}{native['improvement']:.3f}")
+        
         print(f"    Samples: {results['num_samples']}")
         print(f"    Duration: {results['eval_time']:.2f}s")
         print(f"    Report Files: {results['report_files']['json']}")

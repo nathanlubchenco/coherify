@@ -4,12 +4,13 @@ Provides specialized adapters and evaluation metrics for TruthfulQA dataset.
 """
 
 import time
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 from coherify.core.base import PropositionSet, Proposition
 from coherify.benchmarks.adapters import BenchmarkAdapter
 from coherify.core.base import CoherenceMeasure
 from coherify.reporting import BenchmarkReporter, ModelInfo, ExampleResult, ErrorInfo
+from coherify.benchmarks.native_metrics import TruthfulQAMetrics, BenchmarkMetrics
 
 
 class TruthfulQAAdapter(BenchmarkAdapter):
@@ -373,9 +374,15 @@ class EnhancedTruthfulQAEvaluator:
         self,
         dataset: List[Dict[str, Any]],
         evaluation_config: Optional[Dict[str, Any]] = None,
+        predictions: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Evaluate dataset and generate comprehensive report.
+        Evaluate dataset and generate comprehensive report with native metrics.
+        
+        Args:
+            dataset: TruthfulQA dataset samples
+            evaluation_config: Optional configuration
+            predictions: Optional model predictions (if None, uses best_answer)
         
         Returns both standard evaluation results and saves comprehensive report files.
         """
@@ -388,6 +395,11 @@ class EnhancedTruthfulQAEvaluator:
         # Run evaluation
         results = []
         category_scores = {}
+        coherence_scores = []
+        
+        # Get predictions if not provided
+        if predictions is None:
+            predictions = [sample.get("best_answer", "") for sample in dataset]
         
         for idx, sample in enumerate(dataset):
             if idx % 10 == 0:
@@ -395,6 +407,10 @@ class EnhancedTruthfulQAEvaluator:
             
             eval_result = self.evaluate_sample_with_details(sample, idx)
             results.append(eval_result)
+            
+            # Track coherence scores for native metric calculation
+            if "coherence_score" in eval_result:
+                coherence_scores.append(eval_result["coherence_score"])
             
             # Aggregate by category
             category = eval_result["category"]
@@ -405,9 +421,16 @@ class EnhancedTruthfulQAEvaluator:
         
         self.end_time = time.time()
         
-        # Calculate summary statistics
-        coherence_scores = [r.get("coherence_score", 0) for r in results if "coherence_score" in r]
+        # Calculate native TruthfulQA metrics
+        print("📏 Calculating native TruthfulQA metrics...")
+        native_metrics = TruthfulQAMetrics.calculate_metrics(
+            predictions=predictions,
+            samples=dataset,
+            coherence_scores=coherence_scores if coherence_scores else None,
+            coherence_threshold=evaluation_config.get("coherence_threshold", 0.6) if evaluation_config else 0.6
+        )
         
+        # Calculate summary statistics
         evaluation_summary = {
             "num_samples": len(results),
             "mean_coherence": sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0,
@@ -418,6 +441,16 @@ class EnhancedTruthfulQAEvaluator:
             },
             "detailed_results": results,
             "eval_time": self.end_time - self.start_time,
+            
+            # Add native metrics
+            "native_metrics": {
+                "truthful_score": native_metrics.truthful_score,
+                "informative_score": native_metrics.informative_score,
+                "baseline_accuracy": native_metrics.baseline_accuracy,
+                "coherence_filtered_accuracy": native_metrics.coherence_filtered_accuracy,
+                "improvement": native_metrics.improvement,
+            },
+            "benchmark_primary_metric": native_metrics.get_primary_metric(),
         }
         
         # Add contrastive analysis if available

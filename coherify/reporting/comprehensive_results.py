@@ -116,29 +116,48 @@ class BenchmarkReport:
     # Category Breakdown
     category_metrics: Dict[str, Dict[str, float]]
     
+    # Native Benchmark Metrics
+    native_metrics: Optional[Dict[str, Any]] = None
+    benchmark_primary_metric: Optional[Tuple[str, float]] = None
+    
     # Performance Metrics
-    total_tokens_used: Optional[int]
-    estimated_cost_usd: Optional[float]
-    avg_time_per_sample: float
-    throughput_samples_per_second: float
+    total_tokens_used: Optional[int] = None
+    estimated_cost_usd: Optional[float] = None
+    avg_time_per_sample: float = 0.0
+    throughput_samples_per_second: float = 0.0
     
     # Examples
-    correct_examples: List[ExampleResult]
-    incorrect_examples: List[ExampleResult]
-    edge_case_examples: List[ExampleResult]
+    correct_examples: List[ExampleResult] = None
+    incorrect_examples: List[ExampleResult] = None
+    edge_case_examples: List[ExampleResult] = None
     
     # Error Analysis
-    errors: List[ErrorInfo]
-    error_rate: float
-    error_categories: Dict[str, int]
+    errors: List[ErrorInfo] = None
+    error_rate: float = 0.0
+    error_categories: Dict[str, int] = None
+    
+    def __post_init__(self):
+        """Initialize default values for lists."""
+        if self.correct_examples is None:
+            self.correct_examples = []
+        if self.incorrect_examples is None:
+            self.incorrect_examples = []
+        if self.edge_case_examples is None:
+            self.edge_case_examples = []
+        if self.errors is None:
+            self.errors = []
+        if self.error_categories is None:
+            self.error_categories = {}
+        if self.evaluation_config is None:
+            self.evaluation_config = {}
     
     # Additional Metrics
-    coherence_distribution: Optional[Dict[str, int]]
-    correlation_with_human: Optional[float]
-    statistical_significance: Optional[Dict[str, Any]]
+    coherence_distribution: Optional[Dict[str, int]] = None
+    correlation_with_human: Optional[float] = None
+    statistical_significance: Optional[Dict[str, Any]] = None
     
     # Configuration
-    evaluation_config: Dict[str, Any]
+    evaluation_config: Dict[str, Any] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert report to dictionary for serialization."""
@@ -174,6 +193,30 @@ class BenchmarkReport:
         
         # Topline Metrics
         lines.append("## 📊 Topline Metrics")
+        
+        # Native benchmark metrics if available
+        if self.native_metrics:
+            lines.append("### Native Benchmark Performance")
+            if self.benchmark_primary_metric:
+                metric_name, metric_value = self.benchmark_primary_metric
+                lines.append(f"- **Primary Metric ({metric_name})**: {metric_value:.3f}")
+            
+            if "truthful_score" in self.native_metrics:
+                lines.append(f"- **Truthfulness**: {self.native_metrics['truthful_score']:.3f}")
+                lines.append(f"- **Informativeness**: {self.native_metrics.get('informative_score', 0):.3f}")
+            
+            if "baseline_accuracy" in self.native_metrics:
+                lines.append(f"- **Baseline Accuracy**: {self.native_metrics['baseline_accuracy']:.3f}")
+                
+            if "coherence_filtered_accuracy" in self.native_metrics and self.native_metrics['coherence_filtered_accuracy'] is not None:
+                lines.append(f"- **Coherence-Filtered Accuracy**: {self.native_metrics['coherence_filtered_accuracy']:.3f}")
+                if self.native_metrics.get('improvement') is not None:
+                    improvement = self.native_metrics['improvement']
+                    sign = "+" if improvement >= 0 else ""
+                    lines.append(f"- **Improvement**: {sign}{improvement:.3f}")
+            lines.append("")
+        
+        lines.append("### Coherence Metrics")
         lines.append(f"- **Samples Evaluated**: {self.num_samples:,}")
         lines.append(f"- **Success Rate**: {self.success_rate:.1%}")
         lines.append(f"- **Mean Coherence**: {self.mean_coherence:.3f}")
@@ -351,6 +394,9 @@ class BenchmarkReporter:
             min_coherence=coherence_stats['min'],
             max_coherence=coherence_stats['max'],
             median_coherence=coherence_stats['median'],
+            
+            native_metrics=raw_results.get('native_metrics'),
+            benchmark_primary_metric=raw_results.get('benchmark_primary_metric'),
             
             category_metrics=raw_results.get('category_means', {}),
             

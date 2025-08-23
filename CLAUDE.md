@@ -106,23 +106,29 @@ mypy coherify/
 pip install -e .
 ```
 
-## Agent Context Directory Structure
+## Documentation Directory Structure
 
-The `agent_context/` directory contains resources for AI agents working on this project:
+The `.claude/docs/` directory contains comprehensive project documentation:
 
-### `/agent_context/docs/`
-- `opus_plan.md`: Comprehensive project plan with architecture, code examples, and implementation strategy
-- Contains detailed specifications for all planned components and design decisions
+### `.claude/docs/` - Core Documentation
+- **`benchmark_references.md`**: Complete reference for all supported benchmarks including TruthfulQA, SelfCheckGPT, FEVER, and FaithBench with paper citations, usage examples, and evaluation guidelines
+- **`benchmark_setup_guide.md`**: Step-by-step setup instructions, dependencies, troubleshooting, and quick start commands for running benchmarks
+- **`ui_development_history.md`**: Complete UI development history, architecture overview, resolved issues, and lessons learned
+- **`performance_analysis.md`**: Operational data, timing benchmarks, memory usage, and performance optimization guidelines
 
-### `/agent_context/memory/`
-- `coherify_analysis.md`: Analysis of project structure, implementation phases, and key insights
-- Persistent memory for understanding project context across sessions
+### `agent_context/` - Legacy Context (Preserved)
+- **`docs/opus_plan.md`**: Original comprehensive project plan and architecture
+- **`memory/`**: Persistent analysis and implementation lessons
+- **`tasks/`**: Historical task tracking and progress notes
 
-### `/agent_context/tasks/`
-- Directory for tracking specific implementation tasks and progress
-- Can be used to store task breakdowns and implementation notes
+### `docs/` - Public Documentation
+- **`README.md`**: User-facing documentation
+- **`OPERATIONAL_GUIDE.md`**: Operations and deployment guide
+- **`MULTI_FORMAT_BENCHMARKS.md`**: Multi-format benchmark integration guide
 
-**Usage for Claude Code**: Always check these directories first when working on the project to understand the current context, planned architecture, and any previous analysis or decisions.
+**Usage for Claude Code**: Always check `.claude/docs/` first for current project information. Use `agent_context/` for historical context and original planning documents.
+
+**⚠️ Documentation Maintenance Note**: When creating or updating any documentation, always update this directory listing in CLAUDE.md to maintain an accurate reference.
 
 ## Notification Hooks
 
