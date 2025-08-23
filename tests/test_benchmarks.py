@@ -143,14 +143,14 @@ class TestSelfCheckGPTAdapter:
     def test_initialization_default(self):
         """Test default initialization."""
         adapter = SelfCheckGPTAdapter()
-        assert adapter.sample_size == 5
-        assert adapter.temperature == 0.8
+        assert adapter.consistency_mode == "multi_sample"
+        assert adapter.min_samples == 2
 
     def test_initialization_custom(self):
         """Test custom initialization."""
-        adapter = SelfCheckGPTAdapter(sample_size=10, temperature=0.5)
-        assert adapter.sample_size == 10
-        assert adapter.temperature == 0.5
+        adapter = SelfCheckGPTAdapter(consistency_mode="sentence_level", min_samples=5)
+        assert adapter.consistency_mode == "sentence_level"
+        assert adapter.min_samples == 5
 
     def test_convert_basic(self):
         """Test basic conversion."""
@@ -211,21 +211,21 @@ class TestTruthfulQAAdapter:
     def test_initialization_default(self):
         """Test default initialization."""
         adapter = TruthfulQAAdapter()
-        assert adapter.include_incorrect_answers is True
-        assert adapter.max_incorrect_answers == 3
+        assert adapter.evaluation_mode == "generation"
+        assert adapter.use_correct_answers is False
 
     def test_initialization_custom(self):
         """Test custom initialization."""
         adapter = TruthfulQAAdapter(
-            include_incorrect_answers=False,
-            max_incorrect_answers=5
+            evaluation_mode="mc",
+            use_correct_answers=True
         )
-        assert adapter.include_incorrect_answers is False
-        assert adapter.max_incorrect_answers == 5
+        assert adapter.evaluation_mode == "mc"
+        assert adapter.use_correct_answers is True
 
     def test_convert_basic(self):
         """Test basic TruthfulQA conversion."""
-        adapter = TruthfulQAAdapter()
+        adapter = TruthfulQAAdapter(use_correct_answers=True)
         
         item = {
             "question": "What is the capital of France?",
@@ -238,12 +238,12 @@ class TestTruthfulQAAdapter:
         
         assert isinstance(prop_set, PropositionSet)
         assert prop_set.context == "What is the capital of France?"
-        # Should include correct and some incorrect answers
+        # Should include correct answers
         assert len(prop_set.propositions) >= 2
 
     def test_convert_only_correct(self):
         """Test conversion with only correct answers."""
-        adapter = TruthfulQAAdapter(include_incorrect_answers=False)
+        adapter = TruthfulQAAdapter(use_correct_answers=True)
         
         item = {
             "question": "What is 2+2?",
