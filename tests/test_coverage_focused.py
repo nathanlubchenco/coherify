@@ -130,16 +130,22 @@ class TestCoherenceResultExtended:
         """Test coherence result creation."""
         result = CoherenceResult(
             score=0.75,
-            pairwise_scores=[0.8, 0.7],
-            metadata={"method": "test"}
+            measure_name="TestMeasure",
+            details={"method": "test", "pairwise_scores": [0.8, 0.7]},
+            computation_time=0.1
         )
         assert result.score == 0.75
-        assert len(result.pairwise_scores) == 2
-        assert result.metadata["method"] == "test"
+        assert len(result.details["pairwise_scores"]) == 2
+        assert result.details["method"] == "test"
 
     def test_coherence_result_string(self):
         """Test string representation."""
-        result = CoherenceResult(score=0.5, pairwise_scores=[])
+        result = CoherenceResult(
+            score=0.5, 
+            measure_name="TestMeasure",
+            details={}, 
+            computation_time=0.05
+        )
         str_repr = str(result)
         assert "0.5" in str_repr
 

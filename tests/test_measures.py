@@ -18,19 +18,22 @@ class TestSemanticCoherence:
     def test_initialization_defaults(self):
         """Test default initialization."""
         measure = SemanticCoherence()
-        assert measure.model_name == "all-MiniLM-L6-v2"
-        assert measure.similarity_threshold == 0.3
+        assert measure.similarity_threshold == 0.0
+        assert measure.aggregation == "mean"
+        # Encoder should be created but we can't test the exact model name
+        assert measure.encoder is not None
 
     def test_initialization_custom(self):
         """Test custom initialization."""
+        mock_encoder = Mock()
         measure = SemanticCoherence(
-            model_name="custom-model", similarity_threshold=0.5
+            encoder=mock_encoder, similarity_threshold=0.5, aggregation="min"
         )
-        assert measure.model_name == "custom-model"
+        assert measure.encoder == mock_encoder
         assert measure.similarity_threshold == 0.5
+        assert measure.aggregation == "min"
 
-    @patch('coherify.measures.semantic.SentenceTransformer')
-    def test_compute_with_mock_encoder(self, mock_st):
+    def test_compute_with_mock_encoder(self):
         """Test compute with mocked encoder."""
         # Mock encoder to return fixed embeddings
         mock_encoder = Mock()
@@ -38,9 +41,8 @@ class TestSemanticCoherence:
             [1.0, 0.0, 0.0],  # First proposition
             [0.8, 0.6, 0.0],  # Second proposition (high similarity)
         ])
-        mock_st.return_value = mock_encoder
 
-        measure = SemanticCoherence()
+        measure = SemanticCoherence(encoder=mock_encoder)
         props = [
             Proposition(text="Paris is beautiful"),
             Proposition(text="Paris is lovely"),
@@ -51,26 +53,32 @@ class TestSemanticCoherence:
         
         assert isinstance(result, CoherenceResult)
         assert result.score > 0.5  # Should be high due to similar embeddings
-        assert len(result.pairwise_scores) == 1  # One pair
+        # Check details structure
+        assert "pairwise_similarities" in result.details
+        assert len(result.details["pairwise_similarities"]) == 1  # One pair
 
     def test_empty_proposition_set(self):
         """Test with empty proposition set."""
-        measure = SemanticCoherence()
+        mock_encoder = Mock()
+        measure = SemanticCoherence(encoder=mock_encoder)
         prop_set = PropositionSet(propositions=[])
         
         result = measure.compute(prop_set)
-        assert result.score == 0.0
-        assert result.pairwise_scores == []
+        assert result.score == 1.0  # Insufficient propositions returns 1.0
+        assert result.details["reason"] == "insufficient_propositions"
+        assert "pairwise_similarities" not in result.details
 
     def test_single_proposition(self):
         """Test with single proposition."""
-        measure = SemanticCoherence()
+        mock_encoder = Mock()
+        measure = SemanticCoherence(encoder=mock_encoder)
         props = [Proposition(text="Single statement")]
         prop_set = PropositionSet(propositions=props)
         
         result = measure.compute(prop_set)
         assert result.score == 1.0  # Perfect coherence for single statement
-        assert result.pairwise_scores == []
+        assert result.details["reason"] == "insufficient_propositions"
+        assert "pairwise_similarities" not in result.details
 
 
 class TestEntailmentCoherenceCoverage:
@@ -101,33 +109,33 @@ class TestEntailmentCoherenceCoverage:
 
     def test_entailment_coherence_empty_set(self):
         """Test with empty proposition set."""
-        measure = EntailmentCoherence()
+        mock_nli = Mock()
+        measure = EntailmentCoherence(nli_model=mock_nli)
         prop_set = PropositionSet(propositions=[])
         
         result = measure.compute(prop_set)
-        assert result.score == 0.0
+        assert result.score == 1.0  # Insufficient propositions returns 1.0
+        assert result.details["reason"] == "insufficient_propositions"
 
     def test_entailment_coherence_single_prop(self):
         """Test with single proposition."""
-        measure = EntailmentCoherence()
+        mock_nli = Mock()
+        measure = EntailmentCoherence(nli_model=mock_nli)
         props = [Proposition(text="Single statement")]
         prop_set = PropositionSet(propositions=props)
         
         result = measure.compute(prop_set)
         assert result.score == 1.0
+        assert result.details["reason"] == "insufficient_propositions"
 
-    @patch('coherify.measures.entailment.create_pipeline_with_suppressed_warnings')
-    def test_entailment_with_mock_pipeline(self, mock_pipeline):
-        """Test entailment with mocked pipeline."""
-        # Mock pipeline to return specific predictions
-        mock_pipe = Mock()
-        mock_pipe.return_value = [
-            {"label": "ENTAILMENT", "score": 0.9},
-            {"label": "NEUTRAL", "score": 0.1},
-        ]
-        mock_pipeline.return_value = mock_pipe
+    def test_entailment_with_mock_pipeline(self):
+        """Test entailment with mocked NLI model."""
+        # Mock NLI model to return specific predictions
+        mock_nli = Mock()
+        # Mock predict method to return entailment for both directions
+        mock_nli.predict.return_value = "entailment"
 
-        measure = EntailmentCoherence()
+        measure = EntailmentCoherence(nli_model=mock_nli)
         props = [
             Proposition(text="Statement A"),
             Proposition(text="Statement B"),
@@ -136,7 +144,10 @@ class TestEntailmentCoherenceCoverage:
         
         result = measure.compute(prop_set)
         assert isinstance(result, CoherenceResult)
-        assert result.score >= 0.0
+        # With all entailments, score should be positive
+        assert result.score > 0
+        # Should have called predict for both directions (A->B and B->A)
+        assert mock_nli.predict.call_count == 2
 
 
 class TestHybridCoherenceCoverage:
@@ -144,55 +155,63 @@ class TestHybridCoherenceCoverage:
 
     def test_hybrid_coherence_initialization(self):
         """Test HybridCoherence initialization."""
-        semantic = SemanticCoherence()
-        entailment = EntailmentCoherence()
+        # Test with custom weights and mock models
+        mock_encoder = Mock()
+        mock_nli = Mock()
         
-        # Test with custom weights
         measure = HybridCoherence(
-            semantic_measure=semantic,
-            entailment_measure=entailment,
             semantic_weight=0.7,
-            entailment_weight=0.3
+            entailment_weight=0.3,
+            encoder=mock_encoder,
+            nli_model=mock_nli
         )
         
         assert measure.semantic_weight == 0.7
         assert measure.entailment_weight == 0.3
+        assert measure.semantic_measure.encoder == mock_encoder
+        assert measure.entailment_measure.nli_model == mock_nli
 
     def test_hybrid_coherence_normalization(self):
-        """Test weight normalization."""
-        semantic = SemanticCoherence()
-        entailment = EntailmentCoherence()
+        """Test weight validation."""
+        mock_encoder = Mock()
+        mock_nli = Mock()
         
-        # Weights that don't sum to 1
-        measure = HybridCoherence(
-            semantic_measure=semantic,
-            entailment_measure=entailment,
-            semantic_weight=2.0,
-            entailment_weight=1.0
-        )
-        
-        # Should normalize to 2/3 and 1/3
-        assert abs(measure.semantic_weight - 2/3) < 1e-6
-        assert abs(measure.entailment_weight - 1/3) < 1e-6
+        # Weights that don't sum to 1 should raise ValueError
+        with pytest.raises(ValueError, match="Weights must sum to 1.0"):
+            HybridCoherence(
+                semantic_weight=0.7,
+                entailment_weight=0.4,  # 0.7 + 0.4 = 1.1 ≠ 1.0
+                encoder=mock_encoder,
+                nli_model=mock_nli
+            )
 
     def test_adaptive_hybrid_initialization(self):
         """Test AdaptiveHybridCoherence initialization."""
-        measure = AdaptiveHybridCoherence()
+        mock_encoder = Mock()
+        mock_nli = Mock()
+        measure = AdaptiveHybridCoherence(
+            base_semantic_weight=0.3, 
+            base_entailment_weight=0.7,
+            encoder=mock_encoder,
+            nli_model=mock_nli
+        )
         assert hasattr(measure, 'semantic_measure')
         assert hasattr(measure, 'entailment_measure')
-        assert hasattr(measure, 'learning_rate')
+        assert measure.base_semantic_weight == 0.3
+        assert measure.base_entailment_weight == 0.7
 
     def test_adaptive_hybrid_empty_set(self):
         """Test adaptive hybrid with empty set."""
-        measure = AdaptiveHybridCoherence()
+        mock_encoder = Mock()
+        mock_nli = Mock()
+        measure = AdaptiveHybridCoherence(encoder=mock_encoder, nli_model=mock_nli)
         prop_set = PropositionSet(propositions=[])
         
         result = measure.compute(prop_set)
-        assert result.score == 0.0
+        assert result.score == 1.0  # Insufficient propositions returns 1.0
+        assert result.details["reason"] == "insufficient_propositions"
 
-    @patch('coherify.measures.semantic.SentenceTransformer')
-    @patch('coherify.measures.entailment.create_pipeline_with_suppressed_warnings')
-    def test_hybrid_compute_with_mocks(self, mock_nli, mock_st):
+    def test_hybrid_compute_with_mocks(self):
         """Test hybrid compute with mocked components."""
         # Mock semantic encoder
         mock_encoder = Mock()
@@ -200,18 +219,15 @@ class TestHybridCoherenceCoverage:
             [1.0, 0.0, 0.0],
             [0.5, 0.5, 0.0],
         ])
-        mock_st.return_value = mock_encoder
         
-        # Mock NLI pipeline
-        mock_pipe = Mock()
-        mock_pipe.return_value = [{"label": "NEUTRAL", "score": 0.6}]
-        mock_nli.return_value = mock_pipe
+        # Mock NLI model
+        mock_nli = Mock()
+        mock_nli.predict.return_value = "neutral"
         
-        semantic = SemanticCoherence()
-        entailment = EntailmentCoherence()
+        # Create HybridCoherence with mock components
         measure = HybridCoherence(
-            semantic_measure=semantic,
-            entailment_measure=entailment
+            encoder=mock_encoder,
+            nli_model=mock_nli
         )
         
         props = [

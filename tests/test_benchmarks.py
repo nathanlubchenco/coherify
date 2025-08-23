@@ -38,7 +38,7 @@ class TestQABenchmarkAdapter:
 
     def test_convert_qa_multiple_answers(self):
         """Test QA conversion with multiple answers."""
-        adapter = QABenchmarkAdapter("test-qa")
+        adapter = QABenchmarkAdapter("test-qa", multiple_answers_key="answers")
         
         qa_item = {
             "question": "What is 2+2?",

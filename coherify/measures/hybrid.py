@@ -212,11 +212,17 @@ class AdaptiveHybridCoherence(HybridCoherence):
         """Adapt weights based on proposition characteristics."""
         propositions = [p.text for p in prop_set.propositions]
 
+        # Handle empty proposition sets
+        if not propositions:
+            return self.base_semantic_weight, self.base_entailment_weight
+
         # Calculate text characteristics
         avg_length = np.mean([len(p.split()) for p in propositions])
-        vocabulary_diversity = len(set(" ".join(propositions).lower().split())) / len(
-            " ".join(propositions).split()
-        )
+        all_words = " ".join(propositions).split()
+        if not all_words:
+            vocabulary_diversity = 0.0
+        else:
+            vocabulary_diversity = len(set(" ".join(propositions).lower().split())) / len(all_words)
 
         # Adjust weights based on characteristics
         semantic_weight = self.base_semantic_weight

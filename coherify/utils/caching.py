@@ -280,6 +280,11 @@ class ComputationCache:
         except OSError:
             pass
 
+    def remove(self, function_name: str, args: tuple, kwargs: dict):
+        """Remove cached result for function call."""
+        cache_key = self._get_cache_key(function_name, args, kwargs)
+        self._remove_entry(cache_key)
+
     def _evict_old_entries(self):
         """Evict oldest entries."""
         sorted_entries = sorted(

@@ -19,9 +19,9 @@ class TestEmbeddingCache:
     def test_initialization_default(self):
         """Test default initialization."""
         cache = EmbeddingCache()
-        assert cache.cache_dir.endswith("coherify_embeddings")
-        assert cache.max_size == 1000
-        assert cache.ttl_seconds == 3600
+        assert cache.cache_dir == ".coherify_cache"
+        assert cache.max_size == 10000
+        assert cache.ttl_seconds == 24 * 60 * 60
 
     def test_initialization_custom(self):
         """Test custom initialization."""
@@ -219,21 +219,25 @@ class TestTransformersUtils:
         )
         
         assert result == mock_pipe
-        mock_pipeline.assert_called_once()
+        mock_pipeline.assert_called_once_with(
+            "text-classification", model="model-name"
+        )
 
     @patch('coherify.utils.transformers_utils.pipeline')
-    @patch('coherify.utils.transformers_utils.logging')
-    def test_create_pipeline_with_warnings_suppressed(self, mock_logging, mock_pipeline):
+    @patch('logging.getLogger')
+    def test_create_pipeline_with_warnings_suppressed(self, mock_get_logger, mock_pipeline):
         """Test that warnings are properly suppressed."""
         mock_pipe = Mock()
         mock_pipeline.return_value = mock_pipe
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
         
         create_pipeline_with_suppressed_warnings(
             "text-classification", "model-name"
         )
         
         # Should have set logging levels
-        mock_logging.getLogger.assert_called()
+        mock_get_logger.assert_called_with("transformers")
 
     @patch('coherify.utils.transformers_utils.pipeline')
     def test_create_pipeline_with_kwargs(self, mock_pipeline):

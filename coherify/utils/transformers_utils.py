@@ -6,6 +6,12 @@ import warnings
 from contextlib import contextmanager
 from typing import Any, Callable
 
+try:
+    from transformers import pipeline
+except ImportError:
+    # Graceful fallback if transformers not installed
+    pipeline = None
+
 
 @contextmanager
 def suppress_transformer_warnings():
@@ -90,8 +96,12 @@ def create_pipeline_with_suppressed_warnings(task: str, model: str, **kwargs):
 
     Returns:
         Configured pipeline
+    
+    Raises:
+        ImportError: If transformers library is not installed
     """
-    from transformers import pipeline
-
+    if pipeline is None:
+        raise ImportError("transformers library is required but not installed")
+    
     with suppress_transformer_warnings():
         return pipeline(task, model=model, **kwargs)
