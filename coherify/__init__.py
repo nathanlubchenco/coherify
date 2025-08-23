@@ -16,7 +16,7 @@ from coherify.measures.shogenji import (
     ConfidenceBasedProbabilityEstimator,
 )
 from coherify.benchmarks.adapters import QABenchmarkAdapter, get_adapter
-from coherify.benchmarks.truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator
+from coherify.benchmarks.truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator, EnhancedTruthfulQAEvaluator
 from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
 from coherify.utils.caching import CachedEncoder, EmbeddingCache
 from coherify.utils.visualization import CoherenceVisualizer, CoherenceAnalyzer
@@ -89,6 +89,22 @@ from coherify.benchmarks.faithbench_adapter import (
     FaithBenchConfig,
     FaithfulnessCoherence,
 )
+from coherify.evaluators import (
+    MajorityVotingEvaluator,
+    KRunBenchmarkEvaluator,
+)
+from coherify.reporting import (
+    BenchmarkReport,
+    BenchmarkReporter,
+    BenchmarkContext,
+    ModelInfo,
+    ExampleResult,
+    ErrorInfo,
+)
+from coherify.ui import (
+    ResultViewer,
+    start_result_server,
+)
 
 __all__ = [
     "CoherenceResult",
@@ -104,6 +120,7 @@ __all__ = [
     "get_adapter",
     "TruthfulQAAdapter",
     "TruthfulQAEvaluator",
+    "EnhancedTruthfulQAEvaluator",
     "SelfCheckGPTAdapter",
     "SelfCheckGPTEvaluator",
     "CachedEncoder",
@@ -161,4 +178,14 @@ __all__ = [
     "FaithBenchAdapter",
     "FaithBenchConfig",
     "FaithfulnessCoherence",
+    "MajorityVotingEvaluator",
+    "KRunBenchmarkEvaluator",
+    "BenchmarkReport",
+    "BenchmarkReporter",
+    "BenchmarkContext",
+    "ModelInfo",
+    "ExampleResult",
+    "ErrorInfo",
+    "ResultViewer",
+    "start_result_server",
 ]

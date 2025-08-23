@@ -3,11 +3,13 @@ TruthfulQA-specific benchmark integration.
 Provides specialized adapters and evaluation metrics for TruthfulQA dataset.
 """
 
-from typing import Dict, Any
+import time
+from typing import Dict, Any, List, Optional
 
 from coherify.core.base import PropositionSet, Proposition
 from coherify.benchmarks.adapters import BenchmarkAdapter
 from coherify.core.base import CoherenceMeasure
+from coherify.reporting import BenchmarkReporter, ModelInfo, ExampleResult, ErrorInfo
 
 
 class TruthfulQAAdapter(BenchmarkAdapter):
@@ -267,3 +269,205 @@ class TruthfulQAEvaluator:
                 del data["scores"]
 
         return category_analysis
+
+
+class EnhancedTruthfulQAEvaluator:
+    """
+    Enhanced TruthfulQA evaluator with comprehensive reporting capabilities.
+    Generates detailed reports with examples, timing, and contextual information.
+    """
+    
+    def __init__(
+        self,
+        coherence_measure: CoherenceMeasure,
+        model_info: Optional[ModelInfo] = None,
+        reporter: Optional[BenchmarkReporter] = None,
+    ):
+        """Initialize enhanced evaluator."""
+        self.coherence_measure = coherence_measure
+        self.model_info = model_info or ModelInfo()
+        self.reporter = reporter or BenchmarkReporter()
+        self.adapter = TruthfulQAAdapter()
+        
+        # Tracking
+        self.examples = []
+        self.errors = []
+        self.start_time = None
+        self.end_time = None
+    
+    def evaluate_sample_with_details(self, sample: Dict[str, Any], sample_idx: int) -> Dict[str, Any]:
+        """Evaluate sample and collect detailed information for reporting."""
+        try:
+            # Get basic evaluation
+            prop_set = self.adapter.adapt_single(sample)
+            coherence_result = self.coherence_measure.compute(prop_set)
+            
+            evaluation = {
+                "coherence_score": coherence_result.score,
+                "coherence_details": coherence_result.details,
+                "num_propositions": len(prop_set),
+                "category": sample.get("category", "unknown"),
+                "sample_index": sample_idx,
+                "input": sample.get("question", ""),
+                "output": sample.get("best_answer", ""),
+            }
+            
+            # Create example for reporting
+            question = sample.get("question", "")
+            best_answer = sample.get("best_answer", "")
+            
+            # Determine correctness based on coherence and available answers
+            is_correct = None
+            if "correct_answers" in sample and "incorrect_answers" in sample:
+                # Use contrastive evaluation
+                pos_neg_sets = self.adapter.create_positive_negative_sets(sample)
+                if "positive" in pos_neg_sets and "negative" in pos_neg_sets:
+                    pos_coherence = self.coherence_measure.compute(pos_neg_sets["positive"]).score
+                    neg_coherence = self.coherence_measure.compute(pos_neg_sets["negative"]).score
+                    evaluation["positive_coherence"] = pos_coherence
+                    evaluation["negative_coherence"] = neg_coherence
+                    evaluation["coherence_contrast"] = pos_coherence - neg_coherence
+                    
+                    # Consider correct if positive coherence is higher
+                    is_correct = pos_coherence > neg_coherence
+            else:
+                # Use coherence threshold
+                is_correct = coherence_result.score > 0.6
+            
+            example = ExampleResult(
+                input_text=question,
+                output_text=best_answer,
+                expected_output=sample.get("correct_answers", [None])[0] if sample.get("correct_answers") else None,
+                coherence_score=coherence_result.score,
+                is_correct=is_correct,
+                category=sample.get("category"),
+                metadata={
+                    "has_correct_answers": "correct_answers" in sample,
+                    "has_incorrect_answers": "incorrect_answers" in sample,
+                    "evaluation_mode": self.adapter.evaluation_mode,
+                }
+            )
+            
+            self.examples.append(example)
+            return evaluation
+            
+        except Exception as e:
+            error = ErrorInfo(
+                error_type=type(e).__name__,
+                error_message=str(e),
+                sample_index=sample_idx,
+                timestamp=time.time(),
+                context={"sample_keys": list(sample.keys())}
+            )
+            self.errors.append(error)
+            
+            # Return minimal evaluation result
+            return {
+                "coherence_score": 0.0,
+                "error": str(e),
+                "category": sample.get("category", "unknown"),
+                "sample_index": sample_idx,
+            }
+    
+    def evaluate_dataset_with_comprehensive_report(
+        self,
+        dataset: List[Dict[str, Any]],
+        evaluation_config: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Evaluate dataset and generate comprehensive report.
+        
+        Returns both standard evaluation results and saves comprehensive report files.
+        """
+        self.start_time = time.time()
+        self.examples = []
+        self.errors = []
+        
+        print(f"📊 Starting comprehensive TruthfulQA evaluation ({len(dataset)} samples)")
+        
+        # Run evaluation
+        results = []
+        category_scores = {}
+        
+        for idx, sample in enumerate(dataset):
+            if idx % 10 == 0:
+                print(f"  Progress: {idx}/{len(dataset)} samples ({idx/len(dataset)*100:.1f}%)")
+            
+            eval_result = self.evaluate_sample_with_details(sample, idx)
+            results.append(eval_result)
+            
+            # Aggregate by category
+            category = eval_result["category"]
+            if category not in category_scores:
+                category_scores[category] = []
+            if "coherence_score" in eval_result:
+                category_scores[category].append(eval_result["coherence_score"])
+        
+        self.end_time = time.time()
+        
+        # Calculate summary statistics
+        coherence_scores = [r.get("coherence_score", 0) for r in results if "coherence_score" in r]
+        
+        evaluation_summary = {
+            "num_samples": len(results),
+            "mean_coherence": sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0,
+            "category_means": {
+                cat: sum(scores) / len(scores)
+                for cat, scores in category_scores.items()
+                if scores
+            },
+            "detailed_results": results,
+            "eval_time": self.end_time - self.start_time,
+        }
+        
+        # Add contrastive analysis if available
+        contrast_scores = [r.get("coherence_contrast") for r in results if "coherence_contrast" in r]
+        if contrast_scores:
+            evaluation_summary["mean_coherence_contrast"] = sum(contrast_scores) / len(contrast_scores)
+            evaluation_summary["positive_better_rate"] = sum(1 for c in contrast_scores if c > 0) / len(contrast_scores)
+        
+        # Generate comprehensive report
+        print("📝 Generating comprehensive report...")
+        
+        report = self.reporter.create_report(
+            benchmark_name="TruthfulQA",
+            raw_results=evaluation_summary,
+            model_info=self.model_info,
+            evaluation_config=evaluation_config,
+            start_time=self.start_time,
+            end_time=self.end_time,
+            examples=self.examples,
+            errors=self.errors,
+        )
+        
+        # Save report files
+        json_path, md_path = self.reporter.save_report(report)
+        
+        print(f"✅ Comprehensive evaluation completed!")
+        print(f"📄 Report saved: {json_path}")
+        print(f"📄 Markdown: {md_path}")
+        
+        # Add file paths to summary
+        evaluation_summary["report_files"] = {
+            "json": str(json_path),
+            "markdown": str(md_path),
+        }
+        
+        return evaluation_summary
+    
+    def set_model_info(
+        self,
+        model_name: str,
+        provider: str = None,
+        temperature: float = None,
+        embedding_model: str = None,
+        **kwargs
+    ):
+        """Set model information for reporting."""
+        self.model_info = ModelInfo(
+            name=model_name,
+            provider=provider,
+            temperature=temperature,
+            embedding_model=embedding_model,
+            parameters=kwargs,
+        )

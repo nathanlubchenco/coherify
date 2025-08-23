@@ -36,6 +36,8 @@ from coherify import (
     HybridCoherence,
     TruthfulQAAdapter,
     TruthfulQAEvaluator,
+    MajorityVotingEvaluator,
+    KRunBenchmarkEvaluator,
     setup_providers,
     get_provider,
 )
@@ -366,10 +368,100 @@ def run_api_enhanced_benchmark(
         return None
 
 
+def run_k_run_benchmark(
+    data: List[Dict[str, Any]], measures: List, k_runs: int, voting_strategy: str, 
+    parallel: bool = False, sample_size: Optional[int] = None
+):
+    """Run K-run majority voting benchmark evaluation."""
+    print(f"\n🏃‍♂️ Running K-Run TruthfulQA Benchmark (K={k_runs}, Strategy={voting_strategy})...")
+
+    if sample_size:
+        data = data[:sample_size]
+
+    # Setup adapter
+    adapter = TruthfulQAAdapter(
+        evaluation_mode="generation", include_context=True, use_correct_answers=False
+    )
+
+    results_by_measure = {}
+
+    for measure in measures:
+        measure_name = measure.__class__.__name__
+        print(f"\n  📊 Evaluating with {measure_name} (K-run)...")
+
+        # Create base evaluator
+        base_evaluator = TruthfulQAEvaluator(coherence_measure=measure)
+        
+        # Create K-run evaluator
+        from coherify.evaluators.k_run import KRunConfiguration
+        config = KRunConfiguration(
+            k_runs=k_runs,
+            voting_strategy=voting_strategy,
+            parallel_execution=parallel,
+            max_workers=4 if parallel else 1
+        )
+        
+        k_run_evaluator = KRunBenchmarkEvaluator(base_evaluator, config)
+        
+        # Progress callback
+        def progress_callback(progress, status):
+            print(f"    {status} ({progress:.1%})")
+        
+        start_time = time.time()
+        k_run_result = k_run_evaluator.evaluate_dataset(data, progress_callback=progress_callback)
+        eval_time = time.time() - start_time
+
+        results_by_measure[measure_name] = {
+            "k_run_result": k_run_result,
+            "eval_time": eval_time,
+        }
+
+        # Display results
+        stats = k_run_result.dataset_results["statistics"]
+        
+        print(f"    Samples: {k_run_result.successful_samples + k_run_result.failed_samples}")
+        print(f"    Success Rate: {k_run_result.get_success_rate():.1%}")
+        print(f"    Mean Coherence: {stats.get('mean_coherence', 0):.3f}")
+        print(f"    Mean Agreement: {stats.get('mean_agreement_rate', 0):.3f}")
+        print(f"    Unanimous Rate: {stats.get('unanimous_rate', 0):.1%}")
+        print(f"    Evaluation time: {eval_time:.2f}s")
+        print(f"    Total individual runs: {stats.get('total_individual_runs', 0)}")
+
+        # Show category breakdown if available
+        voting_results = k_run_result.dataset_results["voting_results"]
+        category_stats = {}
+        for i, sample in enumerate(data[:len(voting_results)]):
+            category = sample.get("category", "Unknown")
+            if category not in category_stats:
+                category_stats[category] = []
+            if i < len(voting_results):
+                category_stats[category].append(voting_results[i].confidence)
+
+        if category_stats and len(category_stats) > 1:
+            print(f"    Categories:")
+            for category, confidences in category_stats.items():
+                if confidences:
+                    mean_confidence = sum(confidences) / len(confidences)
+                    print(f"      {category}: {mean_confidence:.3f}")
+
+    return results_by_measure
+
+
 def analyze_results(results_by_measure: Dict[str, Any]):
     """Analyze and compare results across measures."""
     print("\n📊 Results Analysis:")
 
+    # Check if K-run results
+    is_k_run = any("k_run_result" in result_data for result_data in results_by_measure.values())
+    
+    if is_k_run:
+        analyze_k_run_results(results_by_measure)
+    else:
+        analyze_standard_results(results_by_measure)
+
+
+def analyze_standard_results(results_by_measure: Dict[str, Any]):
+    """Analyze standard single-run results."""
     # Compare mean coherence scores
     measure_scores = {}
     for measure_name, result_data in results_by_measure.items():
@@ -412,6 +504,47 @@ def analyze_results(results_by_measure: Dict[str, Any]):
             print(f"      {measure_name}: {score:.3f}")
 
 
+def analyze_k_run_results(results_by_measure: Dict[str, Any]):
+    """Analyze K-run majority voting results."""
+    # Compare mean coherence and voting metrics
+    measure_stats = {}
+    for measure_name, result_data in results_by_measure.items():
+        k_run_result = result_data["k_run_result"]
+        stats = k_run_result.dataset_results["statistics"]
+        measure_stats[measure_name] = {
+            "mean_coherence": stats.get("mean_coherence", 0),
+            "mean_agreement": stats.get("mean_agreement_rate", 0),
+            "unanimous_rate": stats.get("unanimous_rate", 0),
+            "success_rate": k_run_result.get_success_rate()
+        }
+
+    print(f"\n  🏆 K-Run Performance Comparison:")
+    sorted_measures = sorted(measure_stats.items(), key=lambda x: x[1]["mean_coherence"], reverse=True)
+
+    for i, (measure_name, stats) in enumerate(sorted_measures):
+        rank_emoji = ["🥇", "🥈", "🥉"][i] if i < 3 else "📊"
+        print(f"    {rank_emoji} {measure_name}:")
+        print(f"      Mean Coherence: {stats['mean_coherence']:.3f}")
+        print(f"      Mean Agreement: {stats['mean_agreement']:.3f}")
+        print(f"      Unanimous Rate: {stats['unanimous_rate']:.1%}")
+        print(f"      Success Rate: {stats['success_rate']:.1%}")
+
+    # Performance comparison
+    print(f"\n  ⚡ K-Run Performance Timing:")
+    for measure_name, result_data in results_by_measure.items():
+        k_run_result = result_data["k_run_result"]
+        eval_time = result_data["eval_time"]
+        total_samples = k_run_result.successful_samples + k_run_result.failed_samples
+        total_runs = k_run_result.dataset_results["statistics"].get("total_individual_runs", 0)
+        
+        time_per_sample = eval_time / total_samples if total_samples > 0 else 0
+        time_per_run = eval_time / total_runs if total_runs > 0 else 0
+
+        print(f"    {measure_name}: {eval_time:.2f}s total")
+        print(f"      {time_per_sample:.3f}s/sample, {time_per_run:.3f}s/run")
+        print(f"      Total runs: {total_runs}, Retries: {k_run_result.retry_count}")
+
+
 def main():
     """Main benchmark runner."""
     parser = argparse.ArgumentParser(
@@ -428,6 +561,16 @@ def main():
     )
     parser.add_argument(
         "--verbose", action="store_true", help="Show all warnings and debug output"
+    )
+    parser.add_argument(
+        "--k-runs", type=int, default=1, help="Number of runs for majority voting (default: 1)"
+    )
+    parser.add_argument(
+        "--voting-strategy", choices=["simple", "weighted", "confidence"], 
+        default="simple", help="Majority voting strategy (default: simple)"
+    )
+    parser.add_argument(
+        "--parallel", action="store_true", help="Run K evaluations in parallel"
     )
 
     args = parser.parse_args()
@@ -471,7 +614,17 @@ def main():
         # Run basic benchmark unless API-only
         if not args.api_only:
             measures = setup_coherence_measures(use_api=args.use_api)
-            results_by_measure = run_basic_benchmark(data, measures, args.sample_size)
+            
+            if args.k_runs > 1:
+                # Run K-run majority voting benchmark
+                results_by_measure = run_k_run_benchmark(
+                    data, measures, args.k_runs, args.voting_strategy, 
+                    args.parallel, args.sample_size
+                )
+            else:
+                # Run standard single benchmark
+                results_by_measure = run_basic_benchmark(data, measures, args.sample_size)
+                
             analyze_results(results_by_measure)
 
         # Run API-enhanced benchmark if requested
@@ -481,6 +634,8 @@ def main():
         print("\n" + "=" * 50)
         print("✅ TruthfulQA benchmark evaluation completed!")
         print("\n💡 Next steps:")
+        print("  - Try K-run majority voting: --k-runs 5 --voting-strategy weighted")
+        print("  - Experiment with parallel execution: --parallel")
         print("  - Try different coherence measures")
         print("  - Experiment with API provider settings")
         print("  - Analyze results by category")
