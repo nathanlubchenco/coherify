@@ -12,6 +12,13 @@ from coherify.core.base import CoherenceMeasure
 from coherify.reporting import BenchmarkReporter, ModelInfo, ExampleResult, ErrorInfo
 from coherify.benchmarks.native_metrics import TruthfulQAMetrics, BenchmarkMetrics
 
+# Try to import performance validation
+try:
+    from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+    HAS_PERFORMANCE_VALIDATION = True
+except ImportError:
+    HAS_PERFORMANCE_VALIDATION = False
+
 
 class TruthfulQAAdapter(BenchmarkAdapter):
     """
@@ -429,6 +436,28 @@ class EnhancedTruthfulQAEvaluator:
             coherence_scores=coherence_scores if coherence_scores else None,
             coherence_threshold=evaluation_config.get("coherence_threshold", 0.6) if evaluation_config else 0.6
         )
+        
+        # Validate performance against research expectations
+        if HAS_PERFORMANCE_VALIDATION and native_metrics.truthful_score is not None:
+            truthful_score = native_metrics.truthful_score
+            is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                "truthfulqa", truthful_score
+            )
+            
+            if not is_realistic:
+                print(f"⚠️  Performance Warning: {explanation}")
+            elif truthful_score > 0:
+                expectations = BenchmarkPerformanceExpectations.get_expectations("truthfulqa")
+                best_model_score = expectations.get("best_model", 0)
+                human_score = expectations.get("human_performance", 0)
+                print(f"ℹ️  Research Context: Human performance {human_score:.1%}, Best model (GPT-3) {best_model_score:.1%}")
+                
+                # Show expected improvement range
+                improvement_range = expectations.get("coherence_improvement", (0, 0))
+                if isinstance(improvement_range, tuple) and native_metrics.improvement is not None:
+                    expected_min, expected_max = improvement_range
+                    actual_improvement = native_metrics.improvement
+                    print(f"ℹ️  Coherence improvement: {actual_improvement:+.3f} (expected {expected_min:.1%}-{expected_max:.1%})")
         
         # Calculate summary statistics
         evaluation_summary = {

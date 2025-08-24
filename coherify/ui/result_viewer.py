@@ -309,6 +309,60 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                     </div>
                 </div>
                 
+                ${report.native_metrics ? `
+                <h2>📏 Native Benchmark Performance</h2>
+                <div class="metric-grid">
+                    ${report.benchmark_primary_metric ? `
+                        <div class="metric-card">
+                            <div class="metric-value">${report.benchmark_primary_metric[1].toFixed(3)}</div>
+                            <div class="metric-label">Primary Metric (${report.benchmark_primary_metric[0]})</div>
+                        </div>
+                    ` : ''}
+                    ${report.native_metrics.truthful_score !== undefined ? `
+                        <div class="metric-card">
+                            <div class="metric-value">${report.native_metrics.truthful_score.toFixed(3)}</div>
+                            <div class="metric-label">Truthfulness</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${(report.native_metrics.informative_score || 0).toFixed(3)}</div>
+                            <div class="metric-label">Informativeness</div>
+                        </div>
+                    ` : ''}
+                    ${report.native_metrics.baseline_accuracy !== undefined ? `
+                        <div class="metric-card">
+                            <div class="metric-value">${report.native_metrics.baseline_accuracy.toFixed(3)}</div>
+                            <div class="metric-label">Baseline Accuracy</div>
+                        </div>
+                    ` : ''}
+                    ${report.native_metrics.coherence_filtered_accuracy !== undefined ? `
+                        <div class="metric-card">
+                            <div class="metric-value">${report.native_metrics.coherence_filtered_accuracy.toFixed(3)}</div>
+                            <div class="metric-label">Coherence-Filtered</div>
+                        </div>
+                    ` : ''}
+                    ${report.native_metrics.improvement !== undefined ? `
+                        <div class="metric-card">
+                            <div class="metric-value">${report.native_metrics.improvement >= 0 ? '+' : ''}${report.native_metrics.improvement.toFixed(3)}</div>
+                            <div class="metric-label">Improvement</div>
+                        </div>
+                    ` : ''}
+                </div>
+                ${report.performance_validation ? `
+                    <div style="margin-top: 15px;">
+                        ${Object.entries(report.performance_validation).map(([metricName, validation]) => {
+                            if (!validation.is_realistic) {
+                                return `<div class="error">⚠️ Performance Warning (${metricName}): ${validation.explanation}</div>`;
+                            } else if (validation.expectations && validation.expectations.best_model) {
+                                return `<div style="background: #e8f4fd; padding: 10px; border-radius: 6px; margin: 5px 0;">
+                                    ℹ️ Research Context: Best published ${metricName} ${(validation.expectations.best_model * 100).toFixed(1)}%
+                                </div>`;
+                            }
+                            return '';
+                        }).join('')}
+                    </div>
+                ` : ''}
+                ` : ''}
+                
                 <h2>🤖 Model Information</h2>
                 <div class="metric-grid">
                     <div class="metric-card">

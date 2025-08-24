@@ -358,7 +358,8 @@ def analyze_fever_results(results: Dict[str, Any]):
     fever_metrics = results.get("fever_specific_metrics", {})
     if fever_metrics:
         print(f"\n🔍 FEVER-Specific Metrics:")
-        print(f"  Label Accuracy: {fever_metrics.get('label_accuracy', 0.0):.1%}")
+        label_accuracy = fever_metrics.get('label_accuracy', 0.0)
+        print(f"  Label Accuracy: {label_accuracy:.1%}")
         print(
             f"  Evidence Consistency: {fever_metrics.get('evidence_consistency', 0.0):.3f}"
         )
@@ -366,6 +367,24 @@ def analyze_fever_results(results: Dict[str, Any]):
         print(
             f"  Multi-response samples: {fever_metrics.get('num_multi_response_samples', 0)}"
         )
+        
+        # Add performance validation for FEVER
+        try:
+            from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+            
+            is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                "fever", label_accuracy
+            )
+            
+            if not is_realistic:
+                print(f"  ⚠️  Performance Warning: {explanation}")
+            elif label_accuracy > 0:
+                expectations = BenchmarkPerformanceExpectations.get_expectations("fever")
+                if expectations:
+                    best_model = expectations.get("best_model", 0)
+                    print(f"  ℹ️  Research Context: Best published result ~{best_model:.1%}")
+        except ImportError:
+            pass  # Skip validation if not available
 
     # Sample-level analysis
     print(f"\n📋 Sample Analysis:")

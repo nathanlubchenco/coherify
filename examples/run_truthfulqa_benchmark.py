@@ -259,6 +259,29 @@ def run_basic_benchmark(
         print(f"    Samples: {evaluation_result['num_samples']}")
         print(f"    Mean coherence: {evaluation_result['mean_coherence']:.3f}")
         print(f"    Evaluation time: {eval_time:.2f}s")
+        
+        # Show native metrics with performance validation if available
+        if "native_metrics" in evaluation_result:
+            native = evaluation_result["native_metrics"]
+            truthful_score = native.get('truthful_score', 0)
+            print(f"    Truthfulness: {truthful_score:.3f}")
+            
+            # Import performance validation here to avoid import errors
+            try:
+                from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+                
+                # Validate truthfulness against research expectations
+                is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                    "truthfulqa", truthful_score
+                )
+                
+                if not is_realistic:
+                    print(f"    ⚠️  Performance Warning: {explanation}")
+                elif truthful_score > 0:
+                    expectations = BenchmarkPerformanceExpectations.get_expectations("truthfulqa")
+                    print(f"    ℹ️  Research Context: Best published result {expectations['best_model']:.1%} (GPT-3)")
+            except ImportError:
+                pass  # Skip validation if not available
 
         # Show category breakdown
         if "category_means" in evaluation_result:

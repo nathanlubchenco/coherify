@@ -14,6 +14,13 @@ from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 import platform
 
+# Import performance expectations for validation
+try:
+    from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+    HAS_PERFORMANCE_VALIDATION = True
+except ImportError:
+    HAS_PERFORMANCE_VALIDATION = False
+
 try:
     import psutil
     HAS_PSUTIL = True
@@ -159,6 +166,9 @@ class BenchmarkReport:
     # Configuration
     evaluation_config: Dict[str, Any] = None
     
+    # Performance Validation
+    performance_validation: Optional[Dict[str, Any]] = None
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert report to dictionary for serialization."""
         return asdict(self)
@@ -201,6 +211,16 @@ class BenchmarkReport:
                 metric_name, metric_value = self.benchmark_primary_metric
                 lines.append(f"- **Primary Metric ({metric_name})**: {metric_value:.3f}")
             
+            # Show performance validation warnings if available
+            if self.performance_validation:
+                for metric_name, validation in self.performance_validation.items():
+                    if not validation.get("is_realistic", True):
+                        lines.append(f"⚠️  **Performance Warning ({metric_name})**: {validation.get('explanation', '')}")
+                    elif "expectations" in validation:
+                        exp = validation["expectations"]
+                        if "best_model" in exp:
+                            lines.append(f"ℹ️  **Research Context**: Best published {metric_name} {exp['best_model']:.1%}")
+            
             if "truthful_score" in self.native_metrics:
                 lines.append(f"- **Truthfulness**: {self.native_metrics['truthful_score']:.3f}")
                 lines.append(f"- **Informativeness**: {self.native_metrics.get('informative_score', 0):.3f}")
@@ -214,6 +234,12 @@ class BenchmarkReport:
                     improvement = self.native_metrics['improvement']
                     sign = "+" if improvement >= 0 else ""
                     lines.append(f"- **Improvement**: {sign}{improvement:.3f}")
+                    
+                    # Show expected improvement range if available
+                    if self.performance_validation and "coherence_improvement" in self.performance_validation:
+                        exp_range = self.performance_validation["coherence_improvement"].get("expected_range")
+                        if exp_range and isinstance(exp_range, (list, tuple)) and len(exp_range) == 2:
+                            lines.append(f"- **Expected Coherence Improvement**: {exp_range[0]:.1%}-{exp_range[1]:.1%}")
             lines.append("")
         
         lines.append("### Coherence Metrics")
@@ -397,6 +423,7 @@ class BenchmarkReporter:
             
             native_metrics=raw_results.get('native_metrics'),
             benchmark_primary_metric=raw_results.get('benchmark_primary_metric'),
+            performance_validation=self._validate_performance(benchmark_name, raw_results.get('native_metrics')),
             
             category_metrics=raw_results.get('category_means', {}),
             
@@ -690,3 +717,72 @@ class BenchmarkReporter:
             benchmark_name.lower(),
             BenchmarkContext(benchmark_name=benchmark_name)
         )
+    
+    def _validate_performance(self, benchmark_name: str, native_metrics: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Validate performance metrics against research baselines."""
+        if not HAS_PERFORMANCE_VALIDATION or not native_metrics:
+            return None
+        
+        validation_results = {}
+        
+        # Get benchmark expectations
+        expectations = BenchmarkPerformanceExpectations.get_expectations(benchmark_name.upper())
+        if not expectations:
+            return None
+        
+        # Validate key metrics based on benchmark type
+        if benchmark_name.lower() in ["truthfulqa", "truthful_qa"]:
+            if "truthful_score" in native_metrics:
+                is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                    "truthfulqa", native_metrics["truthful_score"]
+                )
+                validation_results["truthfulness"] = {
+                    "is_realistic": is_realistic,
+                    "explanation": explanation,
+                    "expectations": expectations
+                }
+            
+            # Add coherence improvement expectations
+            if "improvement" in native_metrics:
+                improvement_range = expectations.get("coherence_improvement", (0, 0))
+                validation_results["coherence_improvement"] = {
+                    "expected_range": improvement_range,
+                    "actual": native_metrics["improvement"]
+                }
+        
+        elif benchmark_name.lower() in ["selfcheckgpt", "self_check_gpt"]:
+            # Look for consistency-related metrics
+            for key in ["accuracy", "auc_pr", "consistency_score"]:
+                if key in native_metrics:
+                    is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                        "selfcheckgpt", native_metrics[key]
+                    )
+                    validation_results[key] = {
+                        "is_realistic": is_realistic,
+                        "explanation": explanation,
+                        "expectations": expectations
+                    }
+        
+        elif benchmark_name.lower() == "fever":
+            if "baseline_accuracy" in native_metrics:
+                is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                    "fever", native_metrics["baseline_accuracy"]
+                )
+                validation_results["accuracy"] = {
+                    "is_realistic": is_realistic,
+                    "explanation": explanation,
+                    "expectations": expectations
+                }
+        
+        elif benchmark_name.lower() in ["faithbench", "faith_bench"]:
+            if "baseline_accuracy" in native_metrics:
+                is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                    "faithbench", native_metrics["baseline_accuracy"]
+                )
+                validation_results["accuracy"] = {
+                    "is_realistic": is_realistic,
+                    "explanation": explanation,
+                    "expectations": expectations
+                }
+        
+        return validation_results if validation_results else None
