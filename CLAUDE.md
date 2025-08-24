@@ -34,6 +34,26 @@ The codebase follows a layered architecture with clear separation of concerns:
 
 ## Key Design Principles
 
+### CRITICAL: Benchmark Fidelity FIRST, Enhancement SECOND
+**This is non-negotiable**: We MUST faithfully reproduce existing benchmarks with their official evaluation methods BEFORE attempting any coherence-based improvements.
+
+Every benchmark implementation MUST have:
+1. **Official Evaluation**: Exact reproduction using original metrics (GPT-judge, BLEURT, BERTScore, etc.)
+2. **Baseline Establishment**: Verify our reproduction matches published results
+3. **Coherence Enhancement**: ONLY after baselines are established, show improvements
+
+Example structure:
+```python
+class TruthfulQABenchmark:
+    def evaluate_official(self, predictions):
+        """Use GPT-judge or BLEURT - MUST match original paper"""
+        pass
+    
+    def evaluate_with_coherence(self, predictions):
+        """Our improvement - ONLY after official works"""
+        pass
+```
+
 ### Benchmark-First Design
 All coherence measures must work seamlessly with common benchmark patterns (QA pairs, document-summary pairs, multi-turn dialogues). The `PropositionSet` serves as the universal container that all benchmarks convert to.
 

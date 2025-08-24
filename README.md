@@ -1,6 +1,6 @@
-# NOTE: Very much a work in progress and unverified
-
 # Coherify: Formal Coherence Theory for AI Truth-Seeking
+
+> ⚠️ **Important**: Benchmark implementations in Coherify use coherence-based evaluation methods that are **NOT directly comparable** to official benchmark scores. See [Benchmark Compatibility](docs/benchmark_compatibility.md) for details.
 
 ![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
