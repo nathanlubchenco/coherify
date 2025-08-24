@@ -55,6 +55,51 @@ Traditional probability-based coherence measures face calibration challenges wit
 
 ## Development Environment
 
+### Code Organization and Testing Guidelines
+
+#### Temporary Scripts and Experimental Code
+For quick testing, debugging, prototyping, and experimental code during development:
+
+```bash
+# Use the .tmp/ directory for all temporary scripts
+.tmp/test_new_feature.py          # Quick feature tests
+.tmp/debug_benchmark_issue.py     # Debugging scripts  
+.tmp/scratch_coherence_idea.py    # Experimental code
+.tmp/prototype_xyz.py             # Feature prototypes
+```
+
+**Guidelines**:
+- ✅ **Use `.tmp/` for**: One-off tests, debugging, prototypes, scratch code
+- ✅ **Automatic cleanup**: Entire `.tmp/` directory is git-ignored
+- ✅ **No formal structure**: Write quick and dirty code as needed
+- ❌ **Don't put temporary files in**: Root directory, `tests/`, or any tracked location
+
+**File Naming Conventions**:
+- `test_*.py` - Quick test scripts
+- `debug_*.py` - Debugging scripts  
+- `scratch_*.py` - Experimental/scratch code
+- `prototype_*.py` - Prototyping new features
+- `*_temp.py`, `*_scratch.py` - Any temporary files
+
+#### Formal Testing Structure
+For permanent, structured tests that are part of the codebase:
+
+```bash
+tests/                           # Formal test directory
+├── test_measures.py            # Core functionality tests
+├── test_benchmarks.py          # Benchmark integration tests
+├── test_utils.py              # Utility function tests
+└── test_*_validation.py       # Benchmark validation tests
+```
+
+**Guidelines**:
+- ✅ **Use `tests/` for**: Permanent tests, CI/CD integration, regression testing
+- ✅ **Follow conventions**: Proper structure, docstrings, assertions
+- ✅ **Git tracked**: These tests are part of the codebase
+- ✅ **Run with pytest**: `pytest tests/`
+
+This separation keeps the main codebase clean while providing space for necessary development experimentation.
+
 ### Python Virtual Environment Setup
 ```bash
 # Create virtual environment
