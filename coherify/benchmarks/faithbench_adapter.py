@@ -145,6 +145,10 @@ class FaithBenchConfig(MultiResponseBenchmarkConfig):
     enable_internal_coherence: bool = True  # Analyze summary internal coherence
     severity_threshold: int = 2  # Minimum severity for hallucination
     enable_span_coherence: bool = True  # Analyze coherence of problem spans
+    challenge_level: str = "hard"  # "easy", "medium", "hard", "all"
+    enable_challenging_case_filtering: bool = True  # Focus on cases where SOTA models disagree
+    model_disagreement_threshold: float = 0.3  # Min disagreement between detection models
+    min_model_predictions: int = 3  # Minimum number of model predictions required
 
 
 class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
@@ -159,6 +163,262 @@ class FaithBenchAdapter(MultiResponseBenchmarkAdapter):
                 reasoning_trace_enabled=True,
             )
         super().__init__("FaithBench", config, provider)
+
+    def filter_challenging_cases(self, dataset: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Filter for challenging cases where SOTA detection models disagree.
+        
+        FaithBench specifically includes challenging hallucinations made by 10 modern LLMs
+        on which popular, state-of-the-art hallucination detection models disagreed.
+        """
+        if not self.config.enable_challenging_case_filtering:
+            return dataset
+        
+        challenging_cases = []
+        
+        for sample in dataset:
+            difficulty_score = self.evaluate_detection_difficulty(sample)
+            
+            if self.config.challenge_level == "all":
+                challenging_cases.append(sample)
+            elif self.config.challenge_level == "easy" and difficulty_score < 0.3:
+                challenging_cases.append(sample)
+            elif self.config.challenge_level == "medium" and 0.3 <= difficulty_score < 0.7:
+                challenging_cases.append(sample)
+            elif self.config.challenge_level == "hard" and difficulty_score >= 0.7:
+                challenging_cases.append(sample)
+        
+        return challenging_cases
+    
+    def evaluate_detection_difficulty(self, sample: Dict[str, Any]) -> float:
+        """
+        Measure how difficult a case is for detection models based on model disagreement.
+        
+        Returns:
+            float: Difficulty score from 0.0 (easy) to 1.0 (very challenging)
+        """
+        faithbench_sample = self._parse_faithbench_sample(sample)
+        metadata = faithbench_sample.metadata
+        
+        # Collect predictions from different detection models in metadata
+        model_predictions = []
+        
+        # Extract available model predictions (these are from the original FaithBench paper)
+        if metadata.hhemv1 is not None:
+            model_predictions.append(metadata.hhemv1)
+        if metadata.hhem_2_1 is not None:
+            model_predictions.append(metadata.hhem_2_1)  
+        if metadata.trueteacher is not None:
+            model_predictions.append(float(metadata.trueteacher))
+        if metadata.true_nli is not None:
+            model_predictions.append(float(metadata.true_nli))
+        if metadata.gpt_3_5_turbo is not None:
+            model_predictions.append(float(metadata.gpt_3_5_turbo))
+        if metadata.gpt_4o is not None:
+            model_predictions.append(float(metadata.gpt_4o))
+        
+        if len(model_predictions) < self.config.min_model_predictions:
+            # Not enough model predictions - use annotation-based difficulty
+            return self._calculate_annotation_difficulty(faithbench_sample)
+        
+        # Calculate disagreement among models
+        if len(model_predictions) <= 1:
+            return 0.5  # Neutral difficulty if only one model
+        
+        # Normalize predictions to 0-1 range
+        normalized_predictions = []
+        for pred in model_predictions:
+            if isinstance(pred, (int, float)):
+                # Assume predictions are either binary (0,1) or probability scores
+                if pred > 1.0:
+                    # Likely a score that needs normalization
+                    normalized_pred = min(pred / 100.0, 1.0) if pred > 10 else pred
+                else:
+                    normalized_pred = pred
+                normalized_predictions.append(normalized_pred)
+        
+        if not normalized_predictions:
+            return self._calculate_annotation_difficulty(faithbench_sample)
+        
+        # Calculate variance as measure of disagreement
+        mean_prediction = sum(normalized_predictions) / len(normalized_predictions)
+        variance = sum((pred - mean_prediction) ** 2 for pred in normalized_predictions) / len(normalized_predictions)
+        
+        # Convert variance to difficulty score
+        # Higher variance = more disagreement = more challenging
+        max_possible_variance = 0.25  # Maximum variance for binary predictions
+        difficulty_from_disagreement = min(variance / max_possible_variance, 1.0)
+        
+        # Combine with annotation-based difficulty
+        annotation_difficulty = self._calculate_annotation_difficulty(faithbench_sample)
+        
+        # Weighted combination: 70% model disagreement, 30% annotation complexity
+        final_difficulty = difficulty_from_disagreement * 0.7 + annotation_difficulty * 0.3
+        
+        return min(final_difficulty, 1.0)
+    
+    def _calculate_annotation_difficulty(self, sample: FaithBenchSample) -> float:
+        """Calculate difficulty based on annotation characteristics."""
+        if not sample.annotations:
+            return 0.0
+        
+        difficulty_factors = []
+        
+        # Factor 1: Number of annotations (more = more complex)
+        num_annotations = len(sample.annotations)
+        annotation_complexity = min(num_annotations / 10.0, 1.0)  # Normalize
+        difficulty_factors.append(annotation_complexity)
+        
+        # Factor 2: Maximum severity level
+        max_severity = sample.max_severity
+        severity_difficulty = max_severity / 3.0  # Normalize (severity 0-3)
+        difficulty_factors.append(severity_difficulty)
+        
+        # Factor 3: Mix of label types (more diverse = harder to detect)
+        unique_labels = set()
+        for ann in sample.annotations:
+            unique_labels.update(ann.label)
+        
+        label_diversity = len(unique_labels) / 6.0  # Max 6 possible labels
+        difficulty_factors.append(label_diversity)
+        
+        # Factor 4: Length and complexity of spans
+        span_complexity = 0.0
+        total_span_length = 0
+        for ann in sample.annotations:
+            if ann.summary_span:
+                span_length = len(ann.summary_span.split())
+                total_span_length += span_length
+                
+                # Short spans might be harder to detect (subtle)
+                # Very long spans might be easier (obvious)
+                if span_length < 5:
+                    span_complexity += 0.8  # Short spans are subtle
+                elif span_length < 15:
+                    span_complexity += 0.6  # Medium spans
+                else:
+                    span_complexity += 0.3  # Long spans are more obvious
+        
+        if sample.annotations:
+            span_complexity = span_complexity / len(sample.annotations)
+        difficulty_factors.append(span_complexity)
+        
+        # Factor 5: Presence of intrinsic vs extrinsic hallucinations
+        has_intrinsic = any("Intrinsic" in str(ann.label) for ann in sample.annotations)
+        has_extrinsic = any("Extrinsic" in str(ann.label) for ann in sample.annotations)
+        
+        # Intrinsic hallucinations (contradictions) are often easier to detect
+        # Extrinsic hallucinations (unsupported additions) are harder
+        if has_intrinsic and has_extrinsic:
+            hallucination_type_difficulty = 0.8  # Mixed types = challenging
+        elif has_extrinsic:
+            hallucination_type_difficulty = 0.7  # Extrinsic = harder to detect
+        elif has_intrinsic:
+            hallucination_type_difficulty = 0.4  # Intrinsic = easier to detect
+        else:
+            hallucination_type_difficulty = 0.5  # Unknown type
+        
+        difficulty_factors.append(hallucination_type_difficulty)
+        
+        # Average all difficulty factors
+        return sum(difficulty_factors) / len(difficulty_factors)
+    
+    def get_challenge_statistics(self, dataset: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze challenge level distribution in dataset."""
+        stats = {
+            "total_samples": len(dataset),
+            "difficulty_distribution": {"easy": 0, "medium": 0, "hard": 0},
+            "avg_difficulty": 0.0,
+            "model_disagreement_cases": 0,
+            "annotation_based_cases": 0
+        }
+        
+        difficulty_scores = []
+        
+        for sample in dataset:
+            difficulty = self.evaluate_detection_difficulty(sample)
+            difficulty_scores.append(difficulty)
+            
+            # Categorize difficulty
+            if difficulty < 0.3:
+                stats["difficulty_distribution"]["easy"] += 1
+            elif difficulty < 0.7:
+                stats["difficulty_distribution"]["medium"] += 1
+            else:
+                stats["difficulty_distribution"]["hard"] += 1
+            
+            # Check if based on model disagreement vs annotations
+            faithbench_sample = self._parse_faithbench_sample(sample)
+            model_pred_count = sum(1 for attr in [
+                faithbench_sample.metadata.hhemv1,
+                faithbench_sample.metadata.hhem_2_1,
+                faithbench_sample.metadata.trueteacher,
+                faithbench_sample.metadata.true_nli,
+                faithbench_sample.metadata.gpt_3_5_turbo,
+                faithbench_sample.metadata.gpt_4o
+            ] if attr is not None)
+            
+            if model_pred_count >= self.config.min_model_predictions:
+                stats["model_disagreement_cases"] += 1
+            else:
+                stats["annotation_based_cases"] += 1
+        
+        if difficulty_scores:
+            stats["avg_difficulty"] = sum(difficulty_scores) / len(difficulty_scores)
+        
+        return stats
+    
+    def filter_by_model_performance(
+        self, 
+        dataset: List[Dict[str, Any]], 
+        target_model: str = "gpt_3_5_turbo",
+        performance_threshold: float = 0.6
+    ) -> List[Dict[str, Any]]:
+        """
+        Filter cases where a specific model performs below threshold.
+        
+        This helps focus on cases that are specifically challenging for certain models.
+        """
+        challenging_for_model = []
+        
+        for sample in dataset:
+            faithbench_sample = self._parse_faithbench_sample(sample)
+            metadata = faithbench_sample.metadata
+            
+            # Get model performance on this sample
+            model_performance = None
+            if target_model == "gpt_3_5_turbo" and metadata.gpt_3_5_turbo is not None:
+                model_performance = metadata.gpt_3_5_turbo
+            elif target_model == "gpt_4o" and metadata.gpt_4o is not None:
+                model_performance = metadata.gpt_4o
+            elif target_model == "trueteacher" and metadata.trueteacher is not None:
+                model_performance = metadata.trueteacher
+            elif target_model == "true_nli" and metadata.true_nli is not None:
+                model_performance = metadata.true_nli
+            
+            # Include sample if model performs below threshold
+            if model_performance is not None:
+                # Normalize performance score
+                if isinstance(model_performance, (int, float)):
+                    normalized_performance = min(model_performance, 1.0) if model_performance <= 1.0 else model_performance / 100.0
+                    
+                    # For hallucination detection, we want cases where model failed
+                    # (either failed to detect hallucination or false positive)
+                    ground_truth = faithbench_sample.get_aggregated_label(self.config.aggregation_strategy)
+                    
+                    # Calculate if model was wrong
+                    model_prediction = normalized_performance > 0.5  # Assuming >0.5 means "no hallucination"
+                    model_was_wrong = (model_prediction and ground_truth) or (not model_prediction and not ground_truth)
+                    
+                    if model_was_wrong or normalized_performance < performance_threshold:
+                        challenging_for_model.append(sample)
+            else:
+                # If no model performance data, include based on general difficulty
+                difficulty = self.evaluate_detection_difficulty(sample)
+                if difficulty >= 0.5:
+                    challenging_for_model.append(sample)
+        
+        return challenging_for_model
 
     def adapt_single(self, sample: Dict[str, Any]) -> PropositionSet:
         """Convert FaithBench sample to PropositionSet."""

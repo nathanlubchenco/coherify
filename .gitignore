@@ -148,3 +148,9 @@ checkpoints/
 .claude_hooks.json
 
 .coherify_cache/
+
+# Temporary development and testing files
+.tmp/
+*.tmp
+*_temp.py
+*_scratch.py

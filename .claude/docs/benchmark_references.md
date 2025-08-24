@@ -45,6 +45,15 @@ adapter = TruthfulQAAdapter(evaluation_mode="generation")
 evaluator = TruthfulQAEvaluator(coherence_measure)
 ```
 
+### ⚠️ Implementation Notes
+**Status**: ✅ **FIXED** - Critical evaluation logic corrected (Aug 2025)
+
+**Previous Issue**: Evaluation logic was backwards - treated coherent responses as truthful
+**Fix Applied**: Now properly checks for misinformation first, then validates against correct answers
+**Performance Calibration**: Realistic expectations (58% GPT-3 baseline) replace unrealistic high scores
+
+**Key Insight**: TruthfulQA is designed to elicit plausible but false answers - low truthfulness scores are expected and realistic!
+
 ---
 
 ## SelfCheckGPT
@@ -85,6 +94,15 @@ adapter = SelfCheckGPTAdapter(method="bertscore")
 evaluator = SelfCheckGPTEvaluator(coherence_measure)
 ```
 
+### ⚠️ Implementation Notes
+**Status**: ✅ **ENHANCED** - Core consistency algorithms implemented (Aug 2025)
+
+**Previous Issue**: Had basic adapter but missing fundamental consistency checking algorithms
+**Enhancement Added**: Complete implementation of BERTScore, NLI, N-gram, and QA-based consistency methods
+**Performance Calibration**: SOTA detection models achieve 71-74% AUC-PR - coherence correlates with consistency
+
+**Key Insight**: Focus on multi-response consistency detection rather than absolute accuracy
+
 ---
 
 ## FEVER (Fact Extraction and VERification)
@@ -124,6 +142,18 @@ from coherify import FEVERAdapter, EvidenceBasedCoherence
 adapter = FEVERAdapter(include_evidence=True)
 measure = EvidenceBasedCoherence()
 ```
+
+### ⚠️ Implementation Notes  
+**Status**: ✅ **ENHANCED** - Multi-sentence/multi-page evidence chains implemented (Aug 2025)
+
+**Previous Issue**: Basic fact verification without proper evidence handling for complex cases
+**Enhancement Added**: Evidence chain retrieval supporting 31.75% of claims requiring multiple sentences
+**Performance Calibration**: Best published result 31.87% with evidence retrieval - challenging by design
+
+**Key Statistics Addressed**:
+- 31.75% claims requiring multiple sentences ✅
+- 16.82% requiring evidence composition ✅  
+- 12.15% requiring multiple Wikipedia pages ✅
 
 ---
 
@@ -166,6 +196,18 @@ adapter = FaithBenchAdapter(challenge_level="hard")
 measure = FaithfulnessCoherence()
 ```
 
+### ⚠️ Implementation Notes
+**Status**: ✅ **ENHANCED** - Challenging case filtering implemented (Aug 2025)
+
+**Previous Issue**: Basic faithfulness checking without focusing on challenging cases where SOTA models disagree
+**Enhancement Added**: Difficulty evaluation and filtering for cases with model disagreement
+**Performance Calibration**: ~50% accuracy on challenging cases - designed to test edge cases where models fail
+
+**Challenge Filtering**:
+- **Easy**: <30% difficulty - Model agreement cases
+- **Medium**: 30-70% difficulty - Some disagreement  
+- **Hard**: >70% difficulty - High model disagreement
+
 ---
 
 ## Usage Guidelines
@@ -175,6 +217,18 @@ measure = FaithfulnessCoherence()
 - **SelfCheckGPT**: Use for hallucination detection without external resources
 - **FEVER**: Use for fact-checking with evidence retrieval
 - **FaithBench**: Use for summarization faithfulness evaluation
+
+### ✅ Implementation Status Update (August 2025)
+
+**RESOLVED**: All critical methodological issues have been fixed:
+
+1. ✅ **TruthfulQA Evaluation Logic**: Fixed backward logic - now properly checks misinformation first
+2. ✅ **SelfCheckGPT Core Algorithms**: Implemented complete consistency checking (BERTScore, NLI, N-gram, QA-based)
+3. ✅ **FEVER Evidence Chains**: Added multi-sentence/multi-page evidence handling for complex claims
+4. ✅ **FaithBench Challenge Focus**: Implemented challenging case filtering based on model disagreement
+5. ✅ **Performance Expectations**: Calibrated realistic baselines based on published research
+
+**Status**: All implementations complete with comprehensive test coverage. See `.claude/docs/benchmark_implementation_summary.md` for detailed results.
 
 ### Evaluation Best Practices
 1. **Sample Size**: Start with small samples (10-50) for development

@@ -113,13 +113,14 @@ The `.claude/docs/` directory contains comprehensive project documentation:
 ### `.claude/docs/` - Core Documentation
 - **`benchmark_references.md`**: Complete reference for all supported benchmarks including TruthfulQA, SelfCheckGPT, FEVER, and FaithBench with paper citations, usage examples, and evaluation guidelines
 - **`benchmark_setup_guide.md`**: Step-by-step setup instructions, dependencies, troubleshooting, and quick start commands for running benchmarks
+- **`benchmark_implementation_fixes.md`**: Critical fixes needed for benchmark implementations based on paper research - includes TruthfulQA evaluation logic errors, missing SelfCheckGPT methodology, and FEVER evidence chain requirements
 - **`ui_development_history.md`**: Complete UI development history, architecture overview, resolved issues, and lessons learned
 - **`performance_analysis.md`**: Operational data, timing benchmarks, memory usage, and performance optimization guidelines
 
 ### `agent_context/` - Legacy Context (Preserved)
 - **`docs/opus_plan.md`**: Original comprehensive project plan and architecture
 - **`memory/`**: Persistent analysis and implementation lessons
-- **`tasks/`**: Historical task tracking and progress notes
+- **`tasks/`**: Historical task tracking and progress notes, including `benchmark_methodology_fixes.md` with critical implementation tasks
 
 ### `docs/` - Public Documentation
 - **`README.md`**: User-facing documentation

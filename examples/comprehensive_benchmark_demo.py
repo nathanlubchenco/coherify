@@ -23,6 +23,7 @@ from coherify import (
     BenchmarkReporter,
     start_result_server,
 )
+from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
 
 # Try to import datasets
 try:
@@ -122,6 +123,17 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
     print("🚀 Comprehensive Benchmark Evaluation Demo")
     print("=" * 50)
     
+    # Show performance expectations warning
+    print("⚠️  IMPORTANT: Performance Expectations")
+    print("-" * 30)
+    expectations = BenchmarkPerformanceExpectations.get_expectations("truthfulqa")
+    print(f"TruthfulQA is designed to elicit plausible but false answers:")
+    print(f"  • Human performance: {expectations['human_performance']:.1%}")
+    print(f"  • Best model (GPT-3): {expectations['best_model']:.1%}")
+    print(f"  • Expected coherence improvement: {expectations['coherence_improvement'][0]:.1%}-{expectations['coherence_improvement'][1]:.1%}")
+    print(f"  • Reference: {expectations['reference']}")
+    print("Low truthfulness scores are expected and realistic!\n")
+    
     # Get sample data
     data = get_sample_data(sample_size)
     print(f"✅ Loaded {len(data)} samples")
@@ -178,11 +190,25 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
         print(f"  📈 Results Summary:")
         print(f"    Mean Coherence: {results['mean_coherence']:.3f}")
         
-        # Show native metrics
+        # Show native metrics with performance validation
         if "native_metrics" in results:
             native = results["native_metrics"]
             print(f"  📏 Native TruthfulQA Metrics:")
-            print(f"    Truthfulness: {native.get('truthful_score', 0):.3f}")
+            
+            truthful_score = native.get('truthful_score', 0)
+            print(f"    Truthfulness: {truthful_score:.3f}")
+            
+            # Validate truthfulness against research expectations
+            is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
+                "truthfulqa", truthful_score
+            )
+            
+            if not is_realistic:
+                print(f"    ⚠️  Performance Warning: {explanation}")
+            elif truthful_score > 0:
+                expectations = BenchmarkPerformanceExpectations.get_expectations("truthfulqa")
+                print(f"    ℹ️  Research Context: Best published result {expectations['best_model']:.1%} (GPT-3)")
+            
             print(f"    Informativeness: {native.get('informative_score', 0):.3f}")
             
             if native.get('coherence_filtered_accuracy') is not None:
@@ -191,6 +217,12 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
                 if native.get('improvement') is not None:
                     sign = "+" if native['improvement'] >= 0 else ""
                     print(f"    Improvement: {sign}{native['improvement']:.3f}")
+                    
+                    # Show expected improvement range
+                    expectations = BenchmarkPerformanceExpectations.get_expectations("truthfulqa")
+                    improvement_range = expectations.get("coherence_improvement", (0, 0))
+                    if isinstance(improvement_range, tuple):
+                        print(f"    ℹ️  Expected coherence improvement: {improvement_range[0]:.1%}-{improvement_range[1]:.1%}")
         
         print(f"    Samples: {results['num_samples']}")
         print(f"    Duration: {results['eval_time']:.2f}s")
