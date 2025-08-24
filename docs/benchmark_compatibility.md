@@ -1,19 +1,32 @@
-# Benchmark Evaluation Guide
+# Research Pipeline Guide
 
-## ✅ CRITICAL UPDATE: Proper Benchmark Implementation
+## 🎯 Research Objective
 
-**Coherify now provides BOTH official benchmark reproduction AND coherence-enhanced evaluation.** This is the correct approach for research validity.
+**Use coherence theory to improve response selection in multi-generation scenarios for better factual accuracy.**
 
-## Two-Phase Evaluation Approach
+We are NOT trying to improve benchmark evaluation methods themselves. Instead, we use coherence to improve how we select the best response from multiple generations.
 
-### Phase 1: Official Baseline (REQUIRED)
-All benchmarks MUST first establish baselines using official evaluation methods:
-- **TruthfulQA**: GPT-judge or BLEURT scoring
-- **FEVER**: Official FEVER scorer with evidence retrieval
-- **SelfCheckGPT**: BERTScore, QA consistency, or N-gram overlap
+## Three-Stage Research Pipeline
 
-### Phase 2: Coherence Enhancement (RESEARCH CONTRIBUTION)
-After baselines are established, demonstrate improvements with coherence measures.
+### Stage 1: Official Baselines ✅
+**Purpose**: Validation that our benchmark implementations are correct
+- Faithfully reproduce official evaluation methods (GPT-judge, BLEURT, BERTScore)
+- Validate against published results 
+- This establishes that our experimental setup is sound
+
+### Stage 2: K-Pass Majority Voting Baseline
+**Purpose**: Fair comparison baseline for coherence methods
+- Generate K responses per question/prompt
+- Use simple majority voting to determine final answer
+- Must beat single-generation to be meaningful
+- This becomes our baseline that coherence must outperform
+
+### Stage 3: Coherence-Enhanced Response Selection
+**Purpose**: Our research contribution
+- Generate K responses at multiple temperatures
+- Apply coherence measures for intelligent selection (not naive voting)
+- **Core insight**: Truth appears more consistently across temperature variations
+- Compare against Stage 2 majority voting (fair comparison)
 
 ## Overview
 

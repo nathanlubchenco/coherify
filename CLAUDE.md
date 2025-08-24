@@ -34,24 +34,47 @@ The codebase follows a layered architecture with clear separation of concerns:
 
 ## Key Design Principles
 
-### CRITICAL: Benchmark Fidelity FIRST, Enhancement SECOND
-**This is non-negotiable**: We MUST faithfully reproduce existing benchmarks with their official evaluation methods BEFORE attempting any coherence-based improvements.
+### CRITICAL: Three-Stage Research Pipeline
 
-Every benchmark implementation MUST have:
-1. **Official Evaluation**: Exact reproduction using original metrics (GPT-judge, BLEURT, BERTScore, etc.)
-2. **Baseline Establishment**: Verify our reproduction matches published results
-3. **Coherence Enhancement**: ONLY after baselines are established, show improvements
+**Research Goal**: Use coherence theory to improve response selection in multi-generation scenarios for better factual accuracy.
 
-Example structure:
+**Three mandatory stages**:
+
+1. **Stage 1: Official Baselines** ✅
+   - Faithfully reproduce benchmark evaluation methods (GPT-judge, BLEURT, BERTScore, etc.)
+   - Validate against published results to ensure implementation correctness
+   - This is NOT what we're trying to improve - it's validation that our setup works
+
+2. **Stage 2: K-Pass Majority Voting Baseline**
+   - Generate K responses per question/prompt
+   - Use simple majority voting to determine final answer
+   - This becomes our **fair comparison baseline** for coherence methods
+   - Must beat single-generation baseline to be meaningful
+
+3. **Stage 3: Coherence-Enhanced Response Selection** (Our Contribution)
+   - Generate K responses at multiple temperatures
+   - Use coherence measures for intelligent response selection instead of naive voting
+   - **Key insight**: Truth appears more consistently across temperature variations
+   - Compare against K-pass majority voting (fair comparison)
+
+**Never skip stages. Never compare single-generation vs K-generation directly.**
+
+Example implementation:
 ```python
-class TruthfulQABenchmark:
-    def evaluate_official(self, predictions):
-        """Use GPT-judge or BLEURT - MUST match original paper"""
-        pass
-    
-    def evaluate_with_coherence(self, predictions):
-        """Our improvement - ONLY after official works"""
-        pass
+# Stage 1: Validate official baseline
+official_score = evaluate_official_benchmark(single_responses, samples)
+
+# Stage 2: K-pass majority voting baseline  
+k_responses = generate_k_responses(prompts, k=5, temp=0.7)
+majority_voted = majority_vote(k_responses)
+k_pass_score = evaluate_official_benchmark(majority_voted, samples)
+
+# Stage 3: Our coherence contribution
+coherence_selected = coherence_selection(k_responses, coherence_measure)
+coherence_score = evaluate_official_benchmark(coherence_selected, samples)
+
+# Valid comparison: coherence_score vs k_pass_score
+improvement = coherence_score - k_pass_score
 ```
 
 ### Benchmark-First Design

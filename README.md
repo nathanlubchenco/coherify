@@ -1,6 +1,6 @@
 # Coherify: Formal Coherence Theory for AI Truth-Seeking
 
-> ⚠️ **Important**: Benchmark implementations in Coherify use coherence-based evaluation methods that are **NOT directly comparable** to official benchmark scores. See [Benchmark Compatibility](docs/benchmark_compatibility.md) for details.
+> 🎯 **Research Focus**: Using coherence theory to improve response selection in multi-generation scenarios for better factual accuracy. We reproduce official benchmarks as baselines, then show how coherence-based ensemble methods outperform simple majority voting.
 
 ![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
