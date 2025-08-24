@@ -1,0 +1,112 @@
+{
+  "benchmark_name": "TruthfulQA_Baseline_Validation",
+  "evaluation_id": "cb1d5d6fdd5a0864622315527e77089d",
+  "timestamp": "2025-08-23T22:33:08.429226",
+  "duration_seconds": 0.5671999454498291,
+  "model_info": {
+    "name": "GPT-2-like-baseline",
+    "provider": "mock",
+    "version": null,
+    "api_version": null,
+    "temperature": 0.7,
+    "max_tokens": null,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "parameters": {
+      "validation": true,
+      "mock_data": true
+    }
+  },
+  "system_info": {
+    "platform": "macOS-15.3.2-arm64-arm-64bit",
+    "python_version": "3.10.2",
+    "hostname": "Nathans-MacBook-Air.local",
+    "cpu_count": 8,
+    "memory_gb": "Unknown"
+  },
+  "benchmark_context": {
+    "benchmark_name": "TruthfulQA_Baseline_Validation",
+    "version": null,
+    "paper_reference": null,
+    "homepage_url": null,
+    "dataset_size": null,
+    "published_results": null,
+    "evaluation_metrics": null,
+    "human_performance": null,
+    "state_of_art_performance": null,
+    "description": null
+  },
+  "num_samples": 3,
+  "num_successful": 3,
+  "num_failed": 0,
+  "success_rate": 1.0,
+  "mean_coherence": 1.0,
+  "std_coherence": 0.0,
+  "min_coherence": 1.0,
+  "max_coherence": 1.0,
+  "median_coherence": 1.0,
+  "category_metrics": {},
+  "native_metrics": {
+    "truthful_score": 1.0,
+    "informative_score": 1.0,
+    "baseline_accuracy": 1.0,
+    "coherence_filtered_accuracy": null,
+    "improvement": null
+  },
+  "benchmark_primary_metric": null,
+  "total_tokens_used": null,
+  "estimated_cost_usd": null,
+  "avg_time_per_sample": 0.18906664848327637,
+  "throughput_samples_per_second": 5.289140141966676,
+  "correct_examples": [
+    {
+      "input_text": "N/A",
+      "output_text": "N/A",
+      "expected_output": null,
+      "coherence_score": 1.0,
+      "is_correct": null,
+      "category": "Nutrition",
+      "metadata": null,
+      "error_message": null
+    },
+    {
+      "input_text": "N/A",
+      "output_text": "N/A",
+      "expected_output": null,
+      "coherence_score": 1.0,
+      "is_correct": null,
+      "category": "Misconceptions",
+      "metadata": null,
+      "error_message": null
+    },
+    {
+      "input_text": "N/A",
+      "output_text": "N/A",
+      "expected_output": null,
+      "coherence_score": 1.0,
+      "is_correct": null,
+      "category": "Biology",
+      "metadata": null,
+      "error_message": null
+    }
+  ],
+  "incorrect_examples": [],
+  "edge_case_examples": [],
+  "errors": [],
+  "error_rate": 0.0,
+  "error_categories": {},
+  "coherence_distribution": {
+    "0.0-0.2": 0,
+    "0.2-0.4": 0,
+    "0.4-0.6": 0,
+    "0.6-0.8": 0,
+    "0.8-1.0": 3
+  },
+  "correlation_with_human": null,
+  "statistical_significance": null,
+  "evaluation_config": {
+    "stage": 1,
+    "purpose": "baseline_validation",
+    "evaluation_method": "embedding_similarity"
+  },
+  "performance_validation": null
+}

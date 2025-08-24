@@ -690,6 +690,7 @@ Options:
                     similarity = len(set1.intersection(set2)) / len(set1.union(set2))
                 similarities.append(similarity)
 
+        import numpy as np
         return float(np.mean(similarities)) if similarities else 1.0
 
     def _compute_subject_coherence(self, responses: List[str], subject: str) -> float:
@@ -734,4 +735,5 @@ Options:
                 min(1.0, normalized_score * 10)
             )  # Scale up and cap at 1.0
 
+        import numpy as np
         return float(np.mean(coherence_scores)) if coherence_scores else 0.0

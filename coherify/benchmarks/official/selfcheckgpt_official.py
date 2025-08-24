@@ -159,6 +159,7 @@ class SelfCheckGPTOfficialEvaluator:
                 )
                 
                 # Use F1 scores for consistency (higher = more consistent)
+                import torch
                 consistency_score = float(torch.mean(F1))
             
             consistency_scores.append(consistency_score)

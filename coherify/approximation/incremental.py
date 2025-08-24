@@ -424,6 +424,7 @@ class AdaptiveApproximator:
         self._initialize_strategies()
 
         # Performance tracking
+        from collections import defaultdict
         self.strategy_performance = defaultdict(list)
         self.strategy_usage = defaultdict(int)
 

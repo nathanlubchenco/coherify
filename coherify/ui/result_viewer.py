@@ -18,9 +18,12 @@ import time
 class ResultViewerHandler(BaseHTTPRequestHandler):
     """HTTP request handler for serving benchmark results."""
     
-    def __init__(self, results_dir: Path, *args, **kwargs):
-        self.results_dir = results_dir
-        super().__init__(*args, **kwargs)
+    # Class variable to store results directory
+    results_dir = None
+    
+    def log_message(self, format, *args):
+        """Override to reduce logging noise."""
+        pass
     
     def do_GET(self):
         """Handle GET requests."""
@@ -519,12 +522,11 @@ class ResultViewer:
         
     def start(self, open_browser: bool = True) -> str:
         """Start the result viewer server."""
-        # Create a custom handler with access to results_dir
-        def handler(*args, **kwargs):
-            return ResultViewerHandler(self.results_dir, *args, **kwargs)
+        # Set the results directory on the handler class
+        ResultViewerHandler.results_dir = self.results_dir
         
         # Start server
-        self.server = HTTPServer(('localhost', self.port), handler)
+        self.server = HTTPServer(('localhost', self.port), ResultViewerHandler)
         
         # Run in background thread
         self.server_thread = threading.Thread(target=self.server.serve_forever)

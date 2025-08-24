@@ -3,7 +3,7 @@ Provider manager for external API providers.
 """
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from .base import ModelProvider
 from .openai_provider import OpenAIProvider
 from .anthropic_provider import AnthropicProvider
@@ -114,7 +114,7 @@ class ProviderManager:
 
     def generate_with_multiple_providers(
         self, prompt: str, provider_names: Optional[List[str]] = None, **kwargs
-    ) -> Dict[str, "ModelResponse"]:
+    ) -> Dict[str, Any]:
         """Generate responses using multiple providers."""
         if provider_names is None:
             provider_names = list(self._providers.keys())

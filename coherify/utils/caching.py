@@ -11,6 +11,10 @@ from typing import Any, Dict, List, Optional, Union, Callable
 from functools import wraps
 import numpy as np
 
+# Global cache instances
+_default_embedding_cache = None
+_default_computation_cache = None
+
 
 class EmbeddingCache:
     """
@@ -446,9 +450,12 @@ def get_default_computation_cache() -> ComputationCache:
 def clear_all_caches():
     """Clear all default caches."""
     global _default_embedding_cache, _default_computation_cache
+    
+    # Initialize if needed
+    if _default_embedding_cache is None:
+        _default_embedding_cache = EmbeddingCache()
+    if _default_computation_cache is None:
+        _default_computation_cache = ComputationCache()
 
-    if _default_embedding_cache:
-        _default_embedding_cache.clear()
-
-    if _default_computation_cache:
-        _default_computation_cache.clear()
+    _default_embedding_cache.clear()
+    _default_computation_cache.clear()
