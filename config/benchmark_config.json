@@ -1,13 +1,50 @@
 {
-  "truthfulqa": {
-    "sample_size": 50,
-    "evaluation_mode": "generation",
-    "use_api_enhancement": true,
-    "coherence_measures": [
-      "SemanticCoherence",
-      "HybridCoherence",
-      "APIEnhancedHybridCoherence"
-    ]
+  "models": {
+    "default": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "max_tokens": 1000
+    },
+    "gpt4-mini": {
+      "provider": "openai", 
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "max_tokens": 1000
+    },
+    "gpt4": {
+      "provider": "openai",
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "max_tokens": 1000
+    },
+    "claude": {
+      "provider": "anthropic",
+      "model": "claude-3-sonnet-20240229",
+      "temperature": 0.7,
+      "max_tokens": 1000
+    }
+  },
+  "benchmarks": {
+    "truthfulqa": {
+      "sample_size": 50,
+      "evaluation_mode": "generation",
+      "use_api_enhancement": true,
+      "coherence_measures": [
+        "SemanticCoherence",
+        "HybridCoherence",
+        "APIEnhancedHybridCoherence"
+      ]
+    },
+    "fever": {
+      "sample_size": 100,
+      "evaluation_mode": "classification"
+    },
+    "selfcheckgpt": {
+      "sample_size": 50,
+      "evaluation_mode": "generation",
+      "num_generations": 5
+    }
   },
   "api_settings": {
     "use_temperature_variance": true,

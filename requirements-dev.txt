@@ -1,0 +1,46 @@
+# Development requirements for Coherify
+# Install with: pip install -r requirements-dev.txt
+
+# Include all base requirements
+-r requirements.txt
+
+# Testing
+pytest>=6.0
+pytest-cov>=2.0
+pytest-asyncio>=0.18.0
+pytest-mock>=3.6.0
+
+# Code quality
+black>=21.0
+flake8>=3.9
+mypy>=0.910
+isort>=5.0
+autopep8>=1.5
+pylint>=2.10
+
+# Pre-commit hooks
+pre-commit>=3.0
+
+# Documentation
+sphinx>=4.0
+sphinx-rtd-theme>=1.0
+myst-parser>=0.18
+
+# Debugging
+ipython>=7.30
+ipdb>=0.13
+pdbpp>=0.10
+
+# Performance profiling
+memory-profiler>=0.60
+line-profiler>=3.5
+py-spy>=0.3
+
+# Security
+bandit>=1.7
+safety>=2.0
+
+# Build tools
+build>=0.10
+twine>=4.0
+wheel>=0.37

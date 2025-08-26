@@ -154,3 +154,5 @@ checkpoints/
 *.tmp
 *_temp.py
 *_scratch.py
+
+results/

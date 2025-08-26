@@ -88,6 +88,22 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                     data = json.load(f)
                 
                 # Extract key metadata for the list view
+                native_metrics = data.get('native_metrics', {})
+                
+                # Determine the primary metric based on benchmark type
+                primary_metric_value = 0
+                primary_metric_label = "Success Rate"
+                
+                if 'truthful_score' in native_metrics and native_metrics['truthful_score'] is not None:
+                    primary_metric_value = native_metrics['truthful_score'] 
+                    primary_metric_label = "Truthfulness"
+                elif 'baseline_accuracy' in native_metrics and native_metrics['baseline_accuracy'] is not None:
+                    primary_metric_value = native_metrics['baseline_accuracy']
+                    primary_metric_label = "Baseline Accuracy"  
+                elif data.get('success_rate') is not None:
+                    primary_metric_value = data.get('success_rate', 0)
+                    primary_metric_label = "Success Rate"
+                
                 reports.append({
                     'filename': json_file.name,
                     'benchmark_name': data.get('benchmark_name', 'Unknown'),
@@ -97,6 +113,8 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                     'success_rate': data.get('success_rate', 0),
                     'duration_seconds': data.get('duration_seconds', 0),
                     'model_name': data.get('model_info', {}).get('name', 'Unknown'),
+                    'primary_metric_value': primary_metric_value,
+                    'primary_metric_label': primary_metric_label,
                 })
             except Exception:
                 # Skip invalid files
@@ -244,8 +262,8 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                             <div class="stat-label">Samples</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">${report.mean_coherence.toFixed(3)}</div>
-                            <div class="stat-label">Mean Coherence</div>
+                            <div class="stat-value">${(report.primary_metric_value * 100).toFixed(1)}%</div>
+                            <div class="stat-label">${report.primary_metric_label}</div>
                         </div>
                         <div class="stat">
                             <div class="stat-value">${(report.success_rate * 100).toFixed(1)}%</div>
@@ -315,7 +333,7 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                 ${report.native_metrics ? `
                 <h2>📏 Native Benchmark Performance</h2>
                 <div class="metric-grid">
-                    ${report.benchmark_primary_metric ? `
+                    ${report.benchmark_primary_metric && report.benchmark_primary_metric[1] !== null ? `
                         <div class="metric-card">
                             <div class="metric-value">${report.benchmark_primary_metric[1].toFixed(3)}</div>
                             <div class="metric-label">Primary Metric (${report.benchmark_primary_metric[0]})</div>
@@ -337,13 +355,13 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
                             <div class="metric-label">Baseline Accuracy</div>
                         </div>
                     ` : ''}
-                    ${report.native_metrics.coherence_filtered_accuracy !== undefined ? `
+                    ${report.native_metrics.coherence_filtered_accuracy !== null && report.native_metrics.coherence_filtered_accuracy !== undefined ? `
                         <div class="metric-card">
                             <div class="metric-value">${report.native_metrics.coherence_filtered_accuracy.toFixed(3)}</div>
                             <div class="metric-label">Coherence-Filtered</div>
                         </div>
                     ` : ''}
-                    ${report.native_metrics.improvement !== undefined ? `
+                    ${report.native_metrics.improvement !== null && report.native_metrics.improvement !== undefined ? `
                         <div class="metric-card">
                             <div class="metric-value">${report.native_metrics.improvement >= 0 ? '+' : ''}${report.native_metrics.improvement.toFixed(3)}</div>
                             <div class="metric-label">Improvement</div>

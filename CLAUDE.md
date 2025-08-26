@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Coding Standards
+* You MUST validate your work.  We have extensive error message and debug logging, pay attention to it.
+* You MUST NOT mock data outside of tests.
+* You MUST NOT provide quiet fallbacks, ERROR loudly instead.
+* Do not keep around legacy implimentations "just in case".  Be confident and decisive.
+* ALWAYS update docs, readmes, context files and tasks after a unit of work.
+* Remember to update tests, data output format and the UIs when changing contracts.
+
 ## Project Overview
 
 Coherify is a Python library implementing formal coherence theories from philosophy (Shogenji, Olsson, Fitelson) as practical tools for AI hallucination detection and reduction. The project emphasizes benchmark-first design and practical applicability over theoretical purity.
@@ -86,15 +94,45 @@ Traditional probability-based coherence measures face calibration challenges wit
 2. **Entailment Coherence**: NLI models for logical relationships  
 3. **Hybrid Approaches**: Weighted combinations of multiple methods
 
-### Implementation Strategy
+### Implementation Status (UPDATED 2024-01-24)
 
-**Phase 1 (Foundation)**: Start with core base classes, semantic coherence, and basic QA benchmark adapter before attempting traditional probability-based measures.
+**✅ COMPLETE - Core Pipeline**:
+- Model runner for actual API calls (`generation/model_runner.py`)
+- Official benchmark evaluators with GPT-4 judge (`benchmarks/official/`)
+- K-pass generation system (`KPassGenerator`)
+- Majority voting selector (`MajorityVotingSelector`)
+- Coherence-based selector (`CoherenceSelector`)
+- Full 3-stage comparison framework (`run_full_pipeline_comparison.py`)
 
-**Phase 2 (Core Measures)**: Add entailment-based coherence and hybrid approaches.
+**🔄 IN PROGRESS - Validation**:
+- Testing with real API keys (GPT-4, Claude)
+- Validating against published baselines
+- Statistical significance testing
 
-**Phase 3 (Advanced)**: Traditional Shogenji implementation with simple probability estimators.
+**📋 TODO - Extensions**:
+- Additional coherence measures (graph-based, temporal)
+- More benchmarks (FEVER, SelfCheckGPT, HaluEval)
+- Optimization (caching, batching, parallel processing)
+- Cost tracking and analysis
 
-**Phase 4 (Extensions)**: Graph-based measures, visualization tools, additional benchmark integrations.
+## Testing Commands (CRITICAL)
+
+### Quick Pipeline Test
+```bash
+# With mock data (no API needed)
+make benchmark-full-pipeline MODEL=default SAMPLES=5 K_RUNS=3
+
+# With real API (set OPENAI_API_KEY first)
+export OPENAI_API_KEY=your-key-here
+make benchmark-full-pipeline MODEL=gpt4-mini SAMPLES=20 K_RUNS=5
+```
+
+### Individual Stage Testing
+```bash
+make benchmark-stage1 MODEL=gpt4-mini SAMPLES=20        # Baseline
+make benchmark-stage2 MODEL=gpt4-mini SAMPLES=20 K_RUNS=5  # Majority voting
+make benchmark-stage3 MODEL=gpt4-mini SAMPLES=20 K_RUNS=5  # Coherence selection
+```
 
 ## Development Environment
 
@@ -110,6 +148,8 @@ For quick testing, debugging, prototyping, and experimental code during developm
 .tmp/scratch_coherence_idea.py    # Experimental code
 .tmp/prototype_xyz.py             # Feature prototypes
 ```
+
+Use this approach sparingly, most development should occur in the main framework.
 
 **Guidelines**:
 - ✅ **Use `.tmp/` for**: One-off tests, debugging, prototypes, scratch code
@@ -196,52 +236,21 @@ pip install -e .
 
 ## Documentation Directory Structure
 
-The `.claude/docs/` directory contains comprehensive project documentation:
-
-### `.claude/docs/` - Core Documentation
-- **`benchmark_references.md`**: Complete reference for all supported benchmarks including TruthfulQA, SelfCheckGPT, FEVER, and FaithBench with paper citations, usage examples, and evaluation guidelines
-- **`benchmark_setup_guide.md`**: Step-by-step setup instructions, dependencies, troubleshooting, and quick start commands for running benchmarks
-- **`benchmark_implementation_fixes.md`**: Critical fixes needed for benchmark implementations based on paper research - includes TruthfulQA evaluation logic errors, missing SelfCheckGPT methodology, and FEVER evidence chain requirements
-- **`ui_development_history.md`**: Complete UI development history, architecture overview, resolved issues, and lessons learned
-- **`performance_analysis.md`**: Operational data, timing benchmarks, memory usage, and performance optimization guidelines
-
-### `agent_context/` - Legacy Context (Preserved)
-- **`docs/opus_plan.md`**: Original comprehensive project plan and architecture
-- **`memory/`**: Persistent analysis and implementation lessons
-- **`tasks/`**: Historical task tracking and progress notes, including `benchmark_methodology_fixes.md` with critical implementation tasks
-
-### `docs/` - Public Documentation
-- **`README.md`**: User-facing documentation
-- **`OPERATIONAL_GUIDE.md`**: Operations and deployment guide
+### `docs/` - Project Documentation
+- **`CRITICAL_IMPLEMENTATION_GAPS.md`**: What was wrong with the original implementation and how it was fixed
+- **`LEGACY_ARCHITECTURE.md`**: Historical context, original vision, and lessons learned from development
+- **`TROUBLESHOOTING.md`**: Common issues, solutions, and debugging tips
 - **`MULTI_FORMAT_BENCHMARKS.md`**: Multi-format benchmark integration guide
+- **`OPERATIONAL_GUIDE.md`**: Operations and deployment guide
 
-**Usage for Claude Code**: Always check `.claude/docs/` first for current project information. Use `agent_context/` for historical context and original planning documents.
+### Project Status Files (Root Directory)
+- **`TODO.md`**: Current tasks and project status
+- **`CURRENT_STATE.md`**: Quick context on what's working
+- **`PROJECT_SUMMARY.md`**: High-level overview of the project and its goals
+
+**Usage for Claude Code**: Check the `docs/` directory for technical documentation and root directory status files for current project state.
 
 **⚠️ Documentation Maintenance Note**: When creating or updating any documentation, always update this directory listing in CLAUDE.md to maintain an accurate reference.
-
-## Notification Hooks
-
-The repository includes notification hooks for Claude Code to provide desktop notifications during development:
-
-### macOS (default - `.claude_hooks.json`)
-Uses `terminal-notifier` for reliable desktop notifications with sound:
-```json
-{
-  "hooks": {
-    "Notification": [{"matcher": "", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'Awaiting your input' -sound Blow"}]}],
-    "OnTaskComplete": [{"matcher": "completed", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'Task completed successfully' -sound Glass"}]}],
-    "OnError": [{"matcher": "error|failed|exception", "hooks": [{"type": "command", "command": "terminal-notifier -title 'Claude Code - Coherify' -message 'An error occurred' -sound Basso"}]}]
-  }
-}
-```
-
-**Prerequisites**: Install terminal-notifier with `brew install terminal-notifier`
-
-### Linux (`.claude_hooks_linux.json`)
-For Linux systems, copy `.claude_hooks_linux.json` to `.claude_hooks.json` to use `notify-send` instead of `terminal-notifier`.
-
-### Alternative (`.claude_hooks_alt.json`)
-Audio-only version using `echo` and `say` commands for systems where desktop notifications don't work.
 
 ## Critical Implementation Notes
 

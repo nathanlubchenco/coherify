@@ -81,23 +81,45 @@ ci-test: test security ## Run all tests and security checks (CI pipeline)
 
 ci-full: ci-quality ci-test build-check ## Run full CI pipeline locally
 
-# Benchmark commands
+# Benchmark commands with configurable parameters
+# Usage: make benchmark-truthfulqa MODEL=gpt4-mini SAMPLES=50
+MODEL ?= default
+SAMPLES ?= 100
+K_RUNS ?= 1
+
 benchmark-basic: ## Run basic benchmarks
 	$(PYTHON) $(EXAMPLES_DIR)/basic_usage.py
 
-benchmark-fever: ## Run FEVER benchmark
-	$(PYTHON) $(EXAMPLES_DIR)/run_fever_benchmark.py --sample-size 100
+benchmark-fever: ## Run FEVER benchmark (MODEL=model_name SAMPLES=N)
+	$(PYTHON) $(EXAMPLES_DIR)/run_fever_benchmark.py --model $(MODEL) --sample-size $(SAMPLES)
 
-benchmark-truthfulqa: ## Run TruthfulQA benchmark
-	$(PYTHON) $(EXAMPLES_DIR)/run_truthfulqa_benchmark.py --sample-size 100
+benchmark-truthfulqa: ## Run TruthfulQA benchmark (MODEL=model_name SAMPLES=N K_RUNS=N)
+	$(PYTHON) $(EXAMPLES_DIR)/run_truthfulqa_benchmark.py --model $(MODEL) --sample-size $(SAMPLES) --k-runs $(K_RUNS)
 
-benchmark-faithbench: ## Run FaithBench benchmark
-	$(PYTHON) $(EXAMPLES_DIR)/run_faithbench_benchmark.py --sample-size 100
+benchmark-faithbench: ## Run FaithBench benchmark (MODEL=model_name SAMPLES=N)
+	$(PYTHON) $(EXAMPLES_DIR)/run_faithbench_benchmark.py --model $(MODEL) --sample-size $(SAMPLES)
 
-benchmark-multi: ## Run multi-format benchmarks
-	$(PYTHON) $(EXAMPLES_DIR)/run_multi_format_benchmarks.py --sample-size 200
+benchmark-multi: ## Run multi-format benchmarks (MODEL=model_name SAMPLES=N)
+	$(PYTHON) $(EXAMPLES_DIR)/run_multi_format_benchmarks.py --model $(MODEL) --sample-size $(SAMPLES)
 
 benchmark-all: benchmark-fever benchmark-truthfulqa benchmark-faithbench benchmark-multi ## Run all benchmarks
+
+# Stage-specific benchmarks for research pipeline
+benchmark-stage1: ## Run Stage 1 (Official Baselines) - MODEL=model_name SAMPLES=N
+	@echo "🏁 Running Stage 1: Official Baselines"
+	$(PYTHON) $(EXAMPLES_DIR)/comprehensive_benchmark_demo.py --model $(MODEL) --sample-size $(SAMPLES) --stage 1
+
+benchmark-stage2: ## Run Stage 2 (K-pass Majority Voting) - MODEL=model_name SAMPLES=N K_RUNS=N
+	@echo "🔄 Running Stage 2: K-pass Majority Voting"
+	$(PYTHON) $(EXAMPLES_DIR)/comprehensive_benchmark_demo.py --model $(MODEL) --sample-size $(SAMPLES) --k-runs $(K_RUNS) --stage 2
+
+benchmark-stage3: ## Run Stage 3 (Coherence Enhancement) - MODEL=model_name SAMPLES=N K_RUNS=N
+	@echo "🧠 Running Stage 3: Coherence-Enhanced Selection"
+	$(PYTHON) $(EXAMPLES_DIR)/comprehensive_benchmark_demo.py --model $(MODEL) --sample-size $(SAMPLES) --k-runs $(K_RUNS) --stage 3
+
+benchmark-full-pipeline: ## Run complete 3-stage research pipeline comparison
+	@echo "🚀 Running Full Research Pipeline Comparison"
+	$(PYTHON) $(EXAMPLES_DIR)/run_full_pipeline_comparison.py --model $(MODEL) --samples $(SAMPLES) --k-responses $(K_RUNS) --verbose
 
 # Development commands
 dev-setup: ## Set up development environment

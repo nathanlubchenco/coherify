@@ -107,12 +107,19 @@ class TruthfulQAOfficialEvaluator:
                 self.actual_method = "gpt-judge"
             elif self.bleurt_scorer is not None:
                 self.actual_method = "bleurt"
+            elif HAS_OPENAI and openai.api_key:
+                # Use GPT-4 as judge when fine-tuned models not available
+                self.actual_method = "gpt4-judge"
+                warnings.warn(
+                    "Using GPT-4 as judge (fine-tuned GPT-judge models not available). "
+                    "Results may differ from official TruthfulQA scores."
+                )
             else:
-                raise ValueError(
-                    "No evaluation method available. Need either:\n"
-                    "1. OpenAI API key + fine-tuned model IDs for GPT-judge\n"
-                    "2. BLEURT installed with checkpoint\n"
-                    "Install: pip install bleurt-pytorch"
+                # Final fallback to embedding similarity
+                self.actual_method = "embedding-similarity"
+                warnings.warn(
+                    "Using embedding similarity fallback. Install OpenAI API or BLEURT "
+                    "for more accurate evaluation."
                 )
         else:
             self.actual_method = method
@@ -138,6 +145,10 @@ class TruthfulQAOfficialEvaluator:
             return self._evaluate_with_gpt_judge(predictions, samples, verbose)
         elif self.actual_method == "bleurt":
             return self._evaluate_with_bleurt(predictions, samples, verbose)
+        elif self.actual_method == "gpt4-judge":
+            return self._evaluate_with_gpt4_judge(predictions, samples, verbose)
+        elif self.actual_method == "embedding-similarity":
+            return self._evaluate_with_embeddings(predictions, samples, verbose)
         else:
             raise ValueError(f"Unknown evaluation method: {self.actual_method}")
     
@@ -312,6 +323,79 @@ class TruthfulQAOfficialEvaluator:
             method="bleurt",
             per_sample_results=per_sample_results,
             warning="BLEURT evaluation is less accurate than GPT-judge (90-95% agreement)"
+        )
+    
+    def _evaluate_with_gpt4_judge(
+        self,
+        predictions: List[str],
+        samples: List[Dict[str, Any]],
+        verbose: bool
+    ) -> TruthfulQAOfficialResult:
+        """
+        Evaluate using GPT-4 as a judge (when fine-tuned models unavailable).
+        """
+        from .truthfulqa_gpt4_judge import TruthfulQAGPT4Judge
+        
+        if verbose:
+            print("📊 Using GPT-4 as judge for TruthfulQA evaluation...")
+            
+        judge = TruthfulQAGPT4Judge(model="gpt-4o-mini", temperature=0.0)
+        truthful_list, informative_list, detailed_results = judge.evaluate_batch(
+            predictions, samples, verbose
+        )
+        
+        # Calculate statistics
+        n = len(predictions)
+        truthful_count = sum(truthful_list)
+        informative_count = sum(informative_list)
+        both_count = sum(t and i for t, i in zip(truthful_list, informative_list))
+        
+        # Build per-sample results
+        per_sample_results = []
+        for i, (pred, sample, result) in enumerate(zip(predictions, samples, detailed_results)):
+            per_sample_results.append({
+                "index": i,
+                "question": sample.get("question", ""),
+                "prediction": pred,
+                "is_truthful": result.is_truthful,
+                "is_informative": result.is_informative,
+                "confidence": (result.truthfulness_confidence + result.informativeness_confidence) / 2,
+                "category": sample.get("category", "unknown")
+            })
+            
+        return TruthfulQAOfficialResult(
+            truthful_score=truthful_count / n if n > 0 else 0,
+            informative_score=informative_count / n if n > 0 else 0,
+            truthful_and_informative=both_count / n if n > 0 else 0,
+            method="gpt4-judge",
+            per_sample_results=per_sample_results,
+            warning="Using GPT-4 as judge (not official fine-tuned models)"
+        )
+        
+    def _evaluate_with_embeddings(
+        self,
+        predictions: List[str],
+        samples: List[Dict[str, Any]],
+        verbose: bool
+    ) -> TruthfulQAOfficialResult:
+        """
+        Fallback evaluation using embedding similarity.
+        """
+        from coherify.benchmarks.truthfulqa_evaluator import ImprovedTruthfulQAEvaluator
+        
+        if verbose:
+            print("⚠️  Using embedding similarity fallback (least accurate method)...")
+            
+        evaluator = ImprovedTruthfulQAEvaluator(use_embeddings=True)
+        results = evaluator.evaluate_dataset(predictions, samples, verbose)
+        
+        return TruthfulQAOfficialResult(
+            truthful_score=results["truthful_rate"],
+            informative_score=results["informative_rate"], 
+            truthful_and_informative=results["truthful_rate"] * results["informative_rate"],
+            method="embedding-similarity",
+            per_sample_results=results.get("per_sample_results", []),
+            warning="Embedding similarity is NOT comparable to official scores"
         )
     
     @staticmethod

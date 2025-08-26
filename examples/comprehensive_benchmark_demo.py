@@ -11,7 +11,9 @@ Usage:
 """
 
 import argparse
+import json
 import time
+from pathlib import Path
 from typing import Dict, Any, List
 
 # Coherify imports
@@ -24,6 +26,12 @@ from coherify import (
     start_result_server,
 )
 from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+from coherify.generation.model_runner import ModelRunner, KPassGenerator
+from coherify.evaluators.response_selectors import (
+    MajorityVotingSelector, 
+    CoherenceSelector,
+    StageComparator
+)
 
 # Try to import datasets
 try:
@@ -32,6 +40,30 @@ try:
 except ImportError:
     HAS_DATASETS = False
     print("⚠️  datasets not available. Using mock data.")
+
+
+def load_model_config(model_name: str = "default") -> Dict[str, Any]:
+    """Load model configuration from benchmark_config.json."""
+    config_path = Path(__file__).parent.parent / "config" / "benchmark_config.json"
+    
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+            
+        models = config.get("models", {})
+        if model_name not in models:
+            print(f"⚠️  Model '{model_name}' not found in config. Available models: {list(models.keys())}")
+            model_name = "default"
+            
+        return models[model_name]
+    except Exception as e:
+        print(f"⚠️  Failed to load model config: {e}")
+        return {
+            "provider": "mock",
+            "model": "gpt-2-like-baseline", 
+            "temperature": 0.7,
+            "max_tokens": 1000
+        }
 
 
 def get_sample_data(sample_size: int = 10) -> List[Dict[str, Any]]:
@@ -118,7 +150,7 @@ def get_sample_data(sample_size: int = 10) -> List[Dict[str, Any]]:
     return mock_data[:sample_size]
 
 
-def run_comprehensive_evaluation_demo(sample_size: int = 10):
+def run_comprehensive_evaluation_demo(sample_size: int = 10, model_config: Dict[str, Any] = None, stage: int = 1):
     """Run comprehensive evaluation demo."""
     print("🚀 Comprehensive Benchmark Evaluation Demo")
     print("=" * 50)
@@ -138,6 +170,57 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
     data = get_sample_data(sample_size)
     print(f"✅ Loaded {len(data)} samples")
     
+    # Initialize model runner if we have a real model config
+    model_runner = None
+    predictions = None
+    
+    if model_config and model_config.get("provider") != "mock":
+        print(f"\n🤖 Initializing model runner for {model_config['model']}...")
+        model_runner = ModelRunner(model_config)
+        
+        # Generate actual predictions based on stage
+        if stage == 1:
+            print(f"📝 Stage 1: Generating single response per question...")
+            predictions = model_runner.generate_for_benchmark(data, question_key="question")
+        elif stage == 2:
+            print(f"📝 Stage 2: Generating K=5 responses for majority voting...")
+            k_generator = KPassGenerator(model_runner, k=5)
+            k_responses = k_generator.generate_k_pass_dataset(data, question_key="question")
+            
+            # Use majority voting selector
+            print("🗳️  Selecting responses by majority voting...")
+            majority_selector = MajorityVotingSelector()
+            predictions = []
+            for responses in k_responses:
+                if responses:
+                    selection = majority_selector.select(responses)
+                    predictions.append(selection.selected_response)
+                else:
+                    predictions.append("")
+                    
+        elif stage == 3:
+            print(f"📝 Stage 3: Generating K=5 responses for coherence selection...")
+            k_generator = KPassGenerator(model_runner, k=5) 
+            k_responses = k_generator.generate_k_pass_dataset(data, question_key="question")
+            
+            # Use coherence-based selector
+            print("🧠 Selecting responses by coherence...")
+            predictions = []
+            for i, responses in enumerate(k_responses):
+                if responses:
+                    question = data[i].get("question", "")
+                    coherence_selector = CoherenceSelector(
+                        coherence_measure=SemanticCoherence(),
+                        question=question
+                    )
+                    selection = coherence_selector.select(responses)
+                    predictions.append(selection.selected_response)
+                else:
+                    predictions.append("")
+    else:
+        print("⚠️  Using mock data (no real model configured)")
+        predictions = None  # Will use best_answer as fallback
+    
     # Setup coherence measures
     measures = [
         ("SemanticCoherence", SemanticCoherence()),
@@ -150,22 +233,23 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
     for measure_name, measure in measures:
         print(f"\n📊 Running comprehensive evaluation with {measure_name}...")
         
-        # Create model info (simulating different models for demonstration)
-        if measure_name == "SemanticCoherence":
-            model_info = ModelInfo(
-                name="sentence-transformers/all-MiniLM-L6-v2",
-                provider="local",
-                embedding_model="sentence-transformers/all-MiniLM-L6-v2",
-                parameters={"max_seq_length": 512}
-            )
-        else:
-            model_info = ModelInfo(
-                name="gpt-3.5-turbo",
-                provider="openai",
-                temperature=0.7,
-                embedding_model="text-embedding-ada-002",
-                parameters={"max_tokens": 1000}
-            )
+        # Create model info using configuration
+        if model_config is None:
+            model_config = {
+                "provider": "mock",
+                "model": "GPT-2-like-baseline",
+                "temperature": 0.7,
+                "max_tokens": 1000
+            }
+        
+        model_info = ModelInfo(
+            name=model_config.get("model", "GPT-2-like-baseline"),
+            provider=model_config.get("provider", "mock"),
+            temperature=model_config.get("temperature", 0.7),
+            max_tokens=model_config.get("max_tokens", 1000),
+            embedding_model="sentence-transformers/all-MiniLM-L6-v2",
+            parameters={"validation": True, "mock_data": model_config.get("provider") == "mock"}
+        )
         
         # Create enhanced evaluator
         evaluator = EnhancedTruthfulQAEvaluator(
@@ -183,7 +267,7 @@ def run_comprehensive_evaluation_demo(sample_size: int = 10):
         }
         
         results = evaluator.evaluate_dataset_with_comprehensive_report(
-            data, evaluation_config=evaluation_config
+            data, evaluation_config=evaluation_config, predictions=predictions
         )
         
         # Show summary
@@ -261,6 +345,18 @@ def main():
         help="Number of samples to evaluate (default: 5)"
     )
     parser.add_argument(
+        "--model", type=str, default="default",
+        help="Model to use (from config/benchmark_config.json models section)"
+    )
+    parser.add_argument(
+        "--k-runs", type=int, default=1,
+        help="Number of runs for majority voting (default: 1)"
+    )
+    parser.add_argument(
+        "--stage", type=int, choices=[1, 2, 3],
+        help="Research pipeline stage: 1=Baselines, 2=K-pass, 3=Coherence"
+    )
+    parser.add_argument(
         "--use-ui", action="store_true",
         help="Start web UI after evaluation"
     )
@@ -281,8 +377,14 @@ def main():
     
     try:
         if not args.ui_only:
-            # Run comprehensive evaluation
-            run_comprehensive_evaluation_demo(args.sample_size)
+            # Load model configuration
+            model_config = load_model_config(args.model)
+            print(f"🤖 Using model: {model_config['model']} (provider: {model_config['provider']})")
+            
+            # Run comprehensive evaluation for the specified stage
+            stage = args.stage if args.stage else 1
+            print(f"🎯 Running Stage {stage} evaluation")
+            run_comprehensive_evaluation_demo(args.sample_size, model_config, stage)
             print("\n" + "=" * 50)
             print("✅ Comprehensive evaluation demo completed!")
         

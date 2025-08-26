@@ -1,1 +1,0 @@
-Make sure that our model providers support changes in temperature.  The goal eventually will be to run the models multiple times and attempt to exploit the differences in answers as a way to generate additional coherence input.  Then we'll also want to compare that to some more naive majority voting attempt.

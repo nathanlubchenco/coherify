@@ -250,7 +250,8 @@ class BenchmarkReport:
             lines.append(f"- **Standard Deviation**: {self.std_coherence:.3f}")
         if self.median_coherence:
             lines.append(f"- **Median Coherence**: {self.median_coherence:.3f}")
-        lines.append(f"- **Range**: {self.min_coherence:.3f} - {self.max_coherence:.3f}")
+        if self.min_coherence is not None and self.max_coherence is not None:
+            lines.append(f"- **Range**: {self.min_coherence:.3f} - {self.max_coherence:.3f}")
         lines.append("")
         
         # Model Information

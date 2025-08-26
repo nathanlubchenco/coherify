@@ -8,6 +8,16 @@
 
 Coherify is a comprehensive Python library that implements philosophical coherence theories (Shogenji, Olsson, Fitelson) as practical tools for AI truth-seeking, hallucination detection, and content quality assessment.
 
+## 🔬 Research Methodology: 3-Stage Pipeline
+
+Our research follows a rigorous 3-stage evaluation pipeline:
+
+1. **Stage 1 - Baseline**: Generate single response → Evaluate with official metrics
+2. **Stage 2 - K-pass Majority**: Generate K responses → Select by majority vote → Evaluate  
+3. **Stage 3 - Coherence Selection**: Generate K responses → Select by coherence → Evaluate
+
+**Goal**: Demonstrate that coherence-based selection (Stage 3) outperforms simple majority voting (Stage 2), which in turn outperforms single generation (Stage 1).
+
 ## 🎯 Key Features
 
 ### Core Coherence Measures
