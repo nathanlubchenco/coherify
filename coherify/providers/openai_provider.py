@@ -15,7 +15,7 @@ class OpenAIProvider(ModelProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gpt-4",
+        model_name: str = "gpt-4o",
         organization: Optional[str] = None,
         base_url: Optional[str] = None,
     ):
@@ -152,7 +152,7 @@ class OpenAIProvider(ModelProvider):
             # Fallback to standard API if reasoning API fails
             try:
                 return self.generate_text(
-                    prompt, max_tokens, temperature, "gpt-4", **kwargs
+                    prompt, max_tokens, temperature, "gpt-4o", **kwargs
                 )
             except Exception as e:
                 raise RuntimeError(f"OpenAI reasoning model API call failed: {str(e)}")
@@ -172,7 +172,7 @@ class OpenAIProvider(ModelProvider):
                 model=(
                     model_to_use
                     if model_to_use.startswith("text-")
-                    else "text-davinci-003"
+                    else "gpt-4o-mini"
                 ),
                 prompt=text,
                 max_tokens=0,  # Just want logprobs, not generation
@@ -282,10 +282,9 @@ Format: CLASSIFICATION confidence_score
         except Exception:
             # Fallback list if API call fails
             return [
-                "gpt-4",
+                "gpt-4o",
+                "gpt-4o-mini",
                 "gpt-4-turbo",
-                "gpt-3.5-turbo",
-                "text-davinci-003",
                 "text-embedding-3-small",
                 "text-embedding-3-large",
                 "o3-mini",  # Reasoning models

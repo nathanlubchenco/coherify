@@ -49,7 +49,7 @@ def setup_demo_providers():
     manager = setup_providers(
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY"),
-        openai_model="gpt-4",
+        openai_model="gpt-4o",
         anthropic_model="claude-3-5-sonnet-20241022",
     )
 

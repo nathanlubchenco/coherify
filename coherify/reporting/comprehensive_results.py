@@ -595,12 +595,12 @@ class BenchmarkReporter:
     
     def _estimate_cost(self, provider: str, model: str, tokens: int) -> float:
         """Estimate API cost based on provider, model, and token usage."""
-        # Cost per 1K tokens (as of 2024)
+        # Cost per 1K tokens (as of Jan 2025)
         pricing = {
             'openai': {
-                'gpt-4': {'input': 0.03, 'output': 0.06},
-                'gpt-3.5-turbo': {'input': 0.001, 'output': 0.002},
-                'text-embedding-ada-002': {'input': 0.0001, 'output': 0},
+                'gpt-4o': {'input': 0.0025, 'output': 0.01},
+                'gpt-4o-mini': {'input': 0.00015, 'output': 0.0006},
+                'text-embedding-3-small': {'input': 0.00002, 'output': 0},
             },
             'anthropic': {
                 'claude-3-opus': {'input': 0.015, 'output': 0.075},

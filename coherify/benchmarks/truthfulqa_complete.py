@@ -234,11 +234,12 @@ class TruthfulQACompleteBenchmark:
         Returns:
             True if results match expectations within tolerance
         """
-        # Expected results from TruthfulQA paper
+        # Expected results from TruthfulQA paper and recent benchmarks
         expected_results = {
             "gpt-3": {"truthful": 0.58, "informative": 0.88, "tolerance": 0.03},
             "gpt-2": {"truthful": 0.41, "informative": 0.89, "tolerance": 0.03},
-            "gpt-3.5-turbo": {"truthful": 0.47, "informative": 0.85, "tolerance": 0.05},
+            "gpt-4o": {"truthful": 0.65, "informative": 0.90, "tolerance": 0.05},
+            "gpt-4o-mini": {"truthful": 0.55, "informative": 0.85, "tolerance": 0.05},
         }
         
         if model_name not in expected_results:

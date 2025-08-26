@@ -242,6 +242,14 @@ pip install -e .
 - **`TROUBLESHOOTING.md`**: Common issues, solutions, and debugging tips
 - **`MULTI_FORMAT_BENCHMARKS.md`**: Multi-format benchmark integration guide
 - **`OPERATIONAL_GUIDE.md`**: Operations and deployment guide
+- **`BENCHMARK_REFERENCES.md`**: Comprehensive benchmark documentation with papers and code
+- **`OPENAI_MODELS.md`**: Current OpenAI model documentation and temperature guidelines
+- **`MODEL_CONFIGURATION.md`**: Model selection, configuration, and migration guide
+- **`benchmarks/`**: Individual benchmark READMEs from source repositories
+  - `TruthfulQA_README.md`
+  - `SelfCheckGPT_README.md`
+  - `FEVER_README.md`
+  - `HaluEval_README.md`
 
 ### Project Status Files (Root Directory)
 - **`TODO.md`**: Current tasks and project status

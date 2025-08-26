@@ -82,7 +82,7 @@ class ProviderManager:
     def create_openai_provider(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gpt-4",
+        model_name: str = "gpt-4o",
         name: str = "openai",
     ) -> OpenAIProvider:
         """Create and add an OpenAI provider."""
@@ -160,7 +160,7 @@ def list_available_providers() -> List[str]:
 def setup_providers(
     openai_api_key: Optional[str] = None,
     anthropic_api_key: Optional[str] = None,
-    openai_model: str = "gpt-4",
+    openai_model: str = "gpt-4o",
     anthropic_model: str = "claude-3-5-sonnet-20241022",
 ) -> ProviderManager:
     """Set up providers with specific API keys."""
