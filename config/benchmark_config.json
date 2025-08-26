@@ -55,10 +55,19 @@
   "api_settings": {
     "use_temperature_variance": true,
     "temperature_range": [
+      0.1,
       0.3,
+      0.5,
       0.7,
-      1.0
+      1.0,
+      1.3,
+      1.5
     ],
+    "temperature_range_adaptive": {
+      "easy": [0.1, 0.3, 0.5],
+      "medium": [0.3, 0.7, 1.0],
+      "hard": [0.5, 1.0, 1.5, 2.0]
+    },
     "num_generations_per_prompt": 2,
     "enable_confidence_scoring": true
   }

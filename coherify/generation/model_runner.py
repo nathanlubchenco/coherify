@@ -9,8 +9,13 @@ import os
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 import time
+import random
 
 from coherify.providers import ProviderManager, OpenAIProvider, AnthropicProvider
+from coherify.generation.temperature_strategies import (
+    AdaptiveTemperatureSelector,
+    get_optimal_temperatures
+)
 
 
 @dataclass 
@@ -142,9 +147,12 @@ class ModelRunner:
         """
         responses = []
         
-        # Use temperature variation for diversity
-        base_temp = self.model_config.get("temperature", 0.7)
-        temperatures = kwargs.get("temperatures", [base_temp + 0.1 * i for i in range(k)])
+        # Use adaptive temperature selection if not provided
+        if "temperatures" not in kwargs:
+            strategy = kwargs.get("temperature_strategy", "adaptive")
+            temperatures = get_optimal_temperatures(prompt, k, strategy)
+        else:
+            temperatures = kwargs.get("temperatures")
         
         for i in range(k):
             temp = temperatures[i % len(temperatures)]
