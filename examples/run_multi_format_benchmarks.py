@@ -1043,6 +1043,12 @@ def main():
         description="Run multi-format benchmarks with Coherify"
     )
     parser.add_argument(
+        "--model",
+        type=str,
+        default="default",
+        help="Model to use (default, gpt4-mini, gpt4, claude)",
+    )
+    parser.add_argument(
         "--benchmarks",
         nargs="+",
         choices=["gsm8k", "hellaswag", "mmlu", "fever", "faithbench", "all"],

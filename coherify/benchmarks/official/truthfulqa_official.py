@@ -339,7 +339,7 @@ class TruthfulQAOfficialEvaluator:
         if verbose:
             print("📊 Using GPT-4 as judge for TruthfulQA evaluation...")
             
-        judge = TruthfulQAGPT4Judge(model="gpt-4o-mini", temperature=0.0)
+        judge = TruthfulQAGPT4Judge(model="gpt-4o", temperature=0.0)
         truthful_list, informative_list, detailed_results = judge.evaluate_batch(
             predictions, samples, verbose
         )

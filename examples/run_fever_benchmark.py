@@ -436,6 +436,12 @@ def main():
     """Main FEVER benchmark runner."""
     parser = argparse.ArgumentParser(description="Run FEVER benchmark with Coherify")
     parser.add_argument(
+        "--model",
+        type=str,
+        default="default",
+        help="Model to use (default, gpt4-mini, gpt4, claude)",
+    )
+    parser.add_argument(
         "--use-api",
         action="store_true",
         help="Use API-enhanced multi-response evaluation",

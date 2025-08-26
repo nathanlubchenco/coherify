@@ -675,6 +675,12 @@ def main():
         description="Run FaithBench benchmark with Coherify"
     )
     parser.add_argument(
+        "--model",
+        type=str,
+        default="default",
+        help="Model to use (default, gpt4-mini, gpt4, claude)",
+    )
+    parser.add_argument(
         "--use-api",
         action="store_true",
         help="Use API-enhanced multi-response evaluation",
