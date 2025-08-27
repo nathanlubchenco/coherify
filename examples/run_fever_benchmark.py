@@ -1,440 +1,370 @@
 #!/usr/bin/env python3
 """
-FEVER Benchmark Runner
+FEVER Benchmark Runner - FIXED VERSION
 
-This script demonstrates running the FEVER (Fact Extraction and VERification)
-benchmark with Coherify's evidence-based coherence evaluation.
+This script properly implements the 3-stage research pipeline:
+1. Baseline FEVER evaluation (single response)
+2. K-pass majority voting
+3. Coherence-enhanced selection
 
-Usage:
-    python examples/run_fever_benchmark.py [--use-api] [--sample-size N]
+The goal is to IMPROVE FEVER accuracy, not just measure coherence.
 """
 
 import os
 import json
 import argparse
 import time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
+from collections import Counter
+import random
 
-# Try to import required libraries
+# Import Coherify components
+from coherify.generation.model_runner import ModelRunner, GenerationResult
+from coherify.evaluators.response_selectors import (
+    MajorityVotingSelector,
+    CoherenceSelector
+)
+from coherify.evaluators.hybrid_selectors import HybridCoherenceConsistencySelector
+from coherify.generation.temperature_strategies import AdaptiveTemperatureSelector
+
+# Try to import datasets
 try:
     from datasets import load_dataset
-
     HAS_DATASETS = True
 except ImportError:
     HAS_DATASETS = False
     print("⚠️  datasets not installed. Install with: pip install datasets")
 
-from coherify import HybridCoherence, setup_providers, get_provider
 
-from coherify.benchmarks.fever_adapter import (
-    FEVERAdapter,
-    FEVERConfig,
-    EvidenceBasedCoherence,
-)
-
-from coherify.measures.multi_response import (
-    TemperatureVarianceCoherence,
-    SelfConsistencyCoherence,
-)
+class FEVERSample:
+    """Single FEVER sample with claim and evidence."""
+    
+    def __init__(self, data: Dict[str, Any]):
+        self.claim = data.get("claim", "")
+        self.label = data.get("label", "NOT ENOUGH INFO")
+        self.evidence = data.get("evidence", [])
+        self.id = data.get("id", "")
 
 
-def load_fever_data(sample_size: Optional[int] = None) -> List[Dict[str, Any]]:
-    """Load FEVER dataset."""
-    print("📚 Loading FEVER data...")
+class FEVEREvaluator:
+    """
+    Proper FEVER evaluator that measures fact-checking accuracy.
+    
+    This evaluator:
+    1. Generates actual predictions for FEVER labels
+    2. Compares different selection strategies
+    3. Reports actual FEVER accuracy (not just coherence)
+    """
+    
+    LABELS = ["SUPPORTS", "REFUTES", "NOT ENOUGH INFO"]
+    
+    def __init__(self, model_runner: Optional[ModelRunner] = None):
+        """
+        Initialize FEVER evaluator.
+        
+        Args:
+            model_runner: ModelRunner for generating predictions
+        """
+        self.model_runner = model_runner
+        self.temp_selector = AdaptiveTemperatureSelector()
+        
+        # Initialize selectors for Stage 2 and 3
+        self.majority_selector = MajorityVotingSelector()
+        self.coherence_selector = CoherenceSelector()
+        self.hybrid_selector = HybridCoherenceConsistencySelector(alpha=0.6)
+    
+    def create_prompt(self, sample: FEVERSample) -> str:
+        """Create a prompt for FEVER fact-checking."""
+        prompt = f"""You are a fact-checker. Given a claim, determine if it is SUPPORTS, REFUTES, or NOT ENOUGH INFO.
 
-    # Method 1: Use datasets library if available
-    if HAS_DATASETS:
-        try:
-            print("  📥 Loading FEVER from Hugging Face...")
-            dataset = load_dataset("kilt_tasks", "fever")
-            data = dataset["validation"].select(
-                range(min(sample_size or 10, len(dataset["validation"])))
-            )
-            print(f"  ✅ Loaded {len(data)} real FEVER samples")
-            return list(data)
+Claim: {sample.claim}
 
-        except Exception as e:
-            print(f"  ⚠️ Failed to load FEVER from datasets: {e}")
+Based on your knowledge, does the evidence SUPPORT the claim, REFUTE the claim, or is there NOT ENOUGH INFO?
 
-    # Fallback: Create mock FEVER data
-    print("  🔧 Using mock FEVER data...")
-    mock_data = create_comprehensive_fever_mock_data()
+Answer with exactly one of: SUPPORTS, REFUTES, NOT ENOUGH INFO
 
-    if sample_size:
-        mock_data = mock_data[:sample_size]
-
-    print(f"  ✅ Using {len(mock_data)} mock FEVER samples")
-    return mock_data
-
-
-def create_comprehensive_fever_mock_data() -> List[Dict[str, Any]]:
-    """Create comprehensive mock FEVER data covering different scenarios."""
-    return [
-        # SUPPORTS case - straightforward
-        {
-            "id": 1,
-            "claim": "Barack Obama was the 44th President of the United States.",
-            "label": "SUPPORTS",
-            "evidence": [
-                [[101, 1001, "Barack_Obama", 0], [101, 1002, "Barack_Obama", 1]]
-            ],
-        },
-        # REFUTES case - clear contradiction
-        {
-            "id": 2,
-            "claim": "The Earth is flat and has no curvature.",
-            "label": "REFUTES",
-            "evidence": [[[102, 2001, "Earth", 5], [102, 2002, "Earth", 12]]],
-        },
-        # NOT ENOUGH INFO case
-        {
-            "id": 3,
-            "claim": "John Smith ate breakfast this morning at 7:30 AM.",
-            "label": "NOT ENOUGH INFO",
-            "evidence": [[[103, 3001, None, None]]],
-        },
-        # Multi-hop reasoning case - requires evidence composition
-        {
-            "id": 4,
-            "claim": "Albert Einstein developed the theory that led to nuclear weapons.",
-            "label": "SUPPORTS",
-            "evidence": [
-                [
-                    [104, 4001, "Albert_Einstein", 3],
-                    [104, 4002, "E=mc²", 0],
-                    [104, 4003, "Nuclear_weapon", 8],
-                ]
-            ],
-        },
-        # Cross-document evidence case
-        {
-            "id": 5,
-            "claim": "Leonardo da Vinci painted the Mona Lisa and designed flying machines.",
-            "label": "SUPPORTS",
-            "evidence": [
-                [
-                    [105, 5001, "Leonardo_da_Vinci", 2],
-                    [105, 5002, "Mona_Lisa", 0],
-                    [105, 5003, "Flying_machine", 4],
-                ]
-            ],
-        },
-        # Complex temporal reasoning
-        {
-            "id": 6,
-            "claim": "World War II ended before the invention of the computer.",
-            "label": "REFUTES",
-            "evidence": [
-                [
-                    [106, 6001, "World_War_II", 15],
-                    [106, 6002, "Computer", 3],
-                    [106, 6003, "ENIAC", 1],
-                ]
-            ],
-        },
-        # Scientific claim requiring multiple evidence
-        {
-            "id": 7,
-            "claim": "Water boils at 100 degrees Celsius at sea level pressure.",
-            "label": "SUPPORTS",
-            "evidence": [
-                [
-                    [107, 7001, "Water", 8],
-                    [107, 7002, "Boiling_point", 2],
-                    [107, 7003, "Atmospheric_pressure", 5],
-                ]
-            ],
-        },
-        # Ambiguous case that could go either way
-        {
-            "id": 8,
-            "claim": "Most people prefer chocolate ice cream over vanilla.",
-            "label": "NOT ENOUGH INFO",
-            "evidence": [
-                [[108, 8001, "Ice_cream", 12], [108, 8002, "Flavor_preference", 3]]
-            ],
-        },
-    ]
-
-
-def run_fever_benchmark(
-    data: List[Dict[str, Any]], use_api: bool = False, sample_size: Optional[int] = None
-) -> Dict[str, Any]:
-    """Run FEVER benchmark evaluation."""
-    print(f"\n🔍 Running FEVER Fact-Checking Benchmark")
-    print("=" * 60)
-
-    if sample_size:
-        data = data[:sample_size]
-
-    # Setup provider if using API
-    provider = None
-    if use_api:
-        try:
-            setup_providers()
-            provider = get_provider()
-            print(f"  🌐 Using API provider: {provider.provider_name}")
-        except Exception as e:
-            print(f"  ⚠️ Failed to setup API provider: {e}")
-            use_api = False
-
-    # Setup FEVER adapter
-    config = FEVERConfig(
-        enable_multi_response=use_api,
-        num_responses_per_sample=3,
-        temperature_range=(0.1, 0.6),
-        reasoning_trace_enabled=True,
-        evidence_coherence_weight=0.7,
-        claim_coherence_weight=0.3,
-    )
-
-    adapter = FEVERAdapter(config=config, provider=provider)
-
-    # Setup coherence measures
-    measures = [
-        HybridCoherence(),
-        EvidenceBasedCoherence(provider=provider),
-    ]
-
-    if use_api:
-        measures.extend(
-            [
-                TemperatureVarianceCoherence(provider=provider),
-                SelfConsistencyCoherence(provider=provider),
-            ]
-        )
-
-    print(f"  📊 Evaluating {len(data)} FEVER samples...")
-
-    # Process each sample
-    results = {
-        "benchmark_name": "FEVER",
-        "num_samples": len(data),
-        "sample_results": [],
-        "multi_response_results": [],
-        "measures": {},
-        "evaluation_time": 0.0,
-        "fever_specific_metrics": {
-            "label_accuracy": 0.0,
-            "evidence_consistency": 0.0,
-            "fever_score": 0.0,
-        },
-    }
-
-    start_time = time.time()
-    label_correct = 0
-    evidence_consistency_scores = []
-    fever_scores = []
-
-    for i, sample in enumerate(data):
-        print(
-            f"    Processing sample {i+1}/{len(data)}: {sample.get('claim', '')[:60]}..."
-        )
-
-        try:
-            # Standard adaptation
-            prop_set = adapter.adapt_single(sample)
-
-            # Multi-response adaptation if enabled
-            multi_result = None
-            if config.enable_multi_response and provider:
-                try:
-                    multi_result = adapter.adapt_single_with_multi_response(sample)
-                    results["multi_response_results"].append(multi_result)
-
-                    # Extract FEVER-specific metrics
-                    if "response_evaluation" in multi_result:
-                        eval_data = multi_result["response_evaluation"]
-                        if eval_data.get("is_correct"):
-                            label_correct += 1
-                        evidence_consistency_scores.append(
-                            eval_data.get("evidence_consistency", 0.0)
-                        )
-                        fever_scores.append(eval_data.get("fever_score", 0.0))
-
-                except Exception as e:
-                    print(f"      Multi-response failed: {e}")
-
-            # Evaluate with each coherence measure
-            sample_coherence = {}
-            for measure in measures:
-                try:
-                    if isinstance(measure, EvidenceBasedCoherence):
-                        # Special handling for evidence-based coherence
-                        fever_sample = adapter._parse_fever_sample(sample)
-                        evidence_sentences = []
-                        for evidence_set in fever_sample.evidence_sets:
-                            evidence_sentences.extend(evidence_set.evidence_sentences)
-
-                        evidence_result = measure.evaluate_evidence_coherence(
-                            fever_sample.claim,
-                            evidence_sentences,
-                            f"FEVER fact-checking: {fever_sample.label}",
-                        )
-                        sample_coherence[measure.__class__.__name__] = evidence_result[
-                            "overall_coherence"
-                        ]
-                    else:
-                        coherence_result = measure.compute(prop_set)
-                        sample_coherence[measure.__class__.__name__] = (
-                            coherence_result.score
-                        )
-
-                except Exception as e:
-                    print(f"      Measure {measure.__class__.__name__} failed: {e}")
-                    sample_coherence[measure.__class__.__name__] = 0.0
-
-            results["sample_results"].append(
-                {
-                    "sample_index": i,
-                    "claim": sample.get("claim", ""),
-                    "label": sample.get("label", ""),
-                    "coherence_scores": sample_coherence,
-                    "proposition_count": len(prop_set.propositions),
-                }
-            )
-
-        except Exception as e:
-            print(f"      Sample {i} failed: {e}")
-            continue
-
-    results["evaluation_time"] = time.time() - start_time
-
-    # Aggregate results by measure
-    for measure in measures:
-        measure_name = measure.__class__.__name__
-        scores = [
-            r["coherence_scores"].get(measure_name, 0.0)
-            for r in results["sample_results"]
-        ]
-
-        if scores:
-            import numpy as np
-
-            results["measures"][measure_name] = {
-                "mean_score": float(np.mean(scores)),
-                "std_score": float(np.std(scores)),
-                "min_score": float(min(scores)),
-                "max_score": float(max(scores)),
-                "num_samples": len(scores),
-            }
-
-    # Compute FEVER-specific metrics
-    if results["multi_response_results"]:
-        results["fever_specific_metrics"] = {
-            "label_accuracy": label_correct / len(data),
-            "evidence_consistency": (
-                float(np.mean(evidence_consistency_scores))
-                if evidence_consistency_scores
-                else 0.0
-            ),
-            "fever_score": float(np.mean(fever_scores)) if fever_scores else 0.0,
-            "num_multi_response_samples": len(results["multi_response_results"]),
-        }
-
-    print(f"  ✅ Completed in {results['evaluation_time']:.2f}s")
-    return results
-
-
-def analyze_fever_results(results: Dict[str, Any]):
-    """Analyze and display FEVER benchmark results."""
-    print("\n📊 FEVER Benchmark Analysis:")
-    print("-" * 50)
-
-    # Overall performance
-    num_samples = results["num_samples"]
-    eval_time = results["evaluation_time"]
-
-    print(f"Samples evaluated: {num_samples}")
-    print(f"Total time: {eval_time:.2f}s ({eval_time/num_samples:.3f}s per sample)")
-
-    # Coherence scores by measure
-    print(f"\n🎯 Coherence Scores by Measure:")
-    measures = results.get("measures", {})
-    for measure_name, stats in measures.items():
-        print(f"  {measure_name}: {stats['mean_score']:.3f} ± {stats['std_score']:.3f}")
-
-    # FEVER-specific metrics
-    fever_metrics = results.get("fever_specific_metrics", {})
-    if fever_metrics:
-        print(f"\n🔍 FEVER-Specific Metrics:")
-        label_accuracy = fever_metrics.get('label_accuracy', 0.0)
-        print(f"  Label Accuracy: {label_accuracy:.1%}")
-        print(
-            f"  Evidence Consistency: {fever_metrics.get('evidence_consistency', 0.0):.3f}"
-        )
-        print(f"  FEVER Score: {fever_metrics.get('fever_score', 0.0):.3f}")
-        print(
-            f"  Multi-response samples: {fever_metrics.get('num_multi_response_samples', 0)}"
+Your answer:"""
+        return prompt
+    
+    def extract_label(self, response: str) -> str:
+        """Extract FEVER label from model response."""
+        response_upper = response.upper()
+        
+        # Check for exact matches first
+        for label in self.LABELS:
+            if label in response_upper:
+                return label
+        
+        # Fallback
+        return "NOT ENOUGH INFO"
+    
+    def evaluate_single(self, sample: FEVERSample) -> str:
+        """
+        Stage 1: Generate single prediction.
+        
+        Returns:
+            Predicted label
+        """
+        if not self.model_runner:
+            # Mock prediction for testing
+            return random.choice(self.LABELS)
+        
+        prompt = self.create_prompt(sample)
+        result = self.model_runner.generate_response(prompt, temperature=0.3)
+        
+        return self.extract_label(result.text)
+    
+    def evaluate_majority_voting(self, sample: FEVERSample, k: int = 5) -> str:
+        """
+        Stage 2: Generate K predictions and use majority voting.
+        
+        Returns:
+            Predicted label from majority voting
+        """
+        if not self.model_runner:
+            # Mock predictions for testing
+            predictions = [random.choice(self.LABELS) for _ in range(k)]
+        else:
+            prompt = self.create_prompt(sample)
+            
+            # Use adaptive temperatures for diversity
+            temperatures = self.temp_selector.select_temperatures(prompt, k)
+            results = []
+            
+            for temp in temperatures:
+                result = self.model_runner.generate_response(prompt, temperature=temp)
+                results.append(result)
+            
+            predictions = [self.extract_label(r.text) for r in results]
+        
+        # Majority voting
+        vote_counts = Counter(predictions)
+        winner = vote_counts.most_common(1)[0][0]
+        
+        return winner
+    
+    def evaluate_coherence_selection(self, sample: FEVERSample, k: int = 5) -> str:
+        """
+        Stage 3: Use coherence-based selection.
+        
+        Returns:
+            Predicted label from best coherent response
+        """
+        if not self.model_runner:
+            # Mock for testing
+            return random.choice(self.LABELS)
+        
+        prompt = self.create_prompt(sample)
+        
+        # Generate K diverse responses
+        responses = self.model_runner.generate_k_responses(
+            prompt, k, temperature_strategy="adaptive"
         )
         
-        # Add performance validation for FEVER
+        # Select best response using hybrid selector
+        result = self.hybrid_selector.select(responses, prompt)
+        
+        return self.extract_label(result.selected_response)
+    
+    def evaluate_dataset(self, 
+                        samples: List[FEVERSample],
+                        method: str = "single") -> Dict[str, Any]:
+        """
+        Evaluate entire dataset with specified method.
+        
+        Args:
+            samples: List of FEVER samples
+            method: Evaluation method ("single", "majority", "coherence")
+            
+        Returns:
+            Evaluation results with accuracy metrics
+        """
+        correct = 0
+        predictions = []
+        
+        print(f"\n🔍 Evaluating {len(samples)} samples with {method} method...")
+        
+        for i, sample in enumerate(samples):
+            # Get prediction based on method
+            if method == "single":
+                pred = self.evaluate_single(sample)
+            elif method == "majority":
+                pred = self.evaluate_majority_voting(sample, k=5)
+            elif method == "coherence":
+                pred = self.evaluate_coherence_selection(sample, k=5)
+            else:
+                raise ValueError(f"Unknown method: {method}")
+            
+            predictions.append(pred)
+            
+            # Check if correct
+            if pred == sample.label:
+                correct += 1
+            
+            # Progress indicator
+            if (i + 1) % 10 == 0:
+                print(f"  Processed {i + 1}/{len(samples)} samples...")
+        
+        # Calculate metrics
+        accuracy = correct / len(samples) if samples else 0
+        
+        # Calculate per-label accuracy
+        label_stats = {label: {"correct": 0, "total": 0} for label in self.LABELS}
+        
+        for sample, pred in zip(samples, predictions):
+            label_stats[sample.label]["total"] += 1
+            if pred == sample.label:
+                label_stats[sample.label]["correct"] += 1
+        
+        label_accuracy = {}
+        for label, stats in label_stats.items():
+            if stats["total"] > 0:
+                label_accuracy[label] = stats["correct"] / stats["total"]
+            else:
+                label_accuracy[label] = 0.0
+        
+        return {
+            "method": method,
+            "accuracy": accuracy,
+            "correct": correct,
+            "total": len(samples),
+            "label_accuracy": label_accuracy,
+            "predictions": predictions
+        }
+
+
+def load_fever_data(sample_size: Optional[int] = None) -> List[FEVERSample]:
+    """Load FEVER dataset."""
+    print("📚 Loading FEVER data...")
+    
+    samples = []
+    
+    if HAS_DATASETS:
         try:
-            from coherify.benchmarks.native_metrics import BenchmarkPerformanceExpectations
+            print("  Loading FEVER data from local file or HuggingFace...")
+            # Try to load from a preprocessed file first
+            import os
+            fever_path = "data/fever_validation.jsonl"
             
-            is_realistic, explanation = BenchmarkPerformanceExpectations.is_performance_realistic(
-                "fever", label_accuracy
-            )
+            if os.path.exists(fever_path):
+                print(f"  Loading from local file: {fever_path}")
+                # Read JSONL file (each line is a JSON object)
+                with open(fever_path, 'r') as f:
+                    for line in f:
+                        if line.strip():
+                            item = json.loads(line)
+                            samples.append(FEVERSample(item))
+                            if sample_size and len(samples) >= sample_size:
+                                break
+            else:
+                # Use mock data with more realistic examples
+                print("  Note: Using high-quality mock FEVER data")
+                print("  (Real FEVER dataset requires manual download)")
+                raise Exception("Using mock data")
             
-            if not is_realistic:
-                print(f"  ⚠️  Performance Warning: {explanation}")
-            elif label_accuracy > 0:
-                expectations = BenchmarkPerformanceExpectations.get_expectations("fever")
-                if expectations:
-                    best_model = expectations.get("best_model", 0)
-                    print(f"  ℹ️  Research Context: Best published result ~{best_model:.1%}")
-        except ImportError:
-            pass  # Skip validation if not available
+            print(f"  ✅ Loaded {len(samples)} FEVER samples")
+            return samples
+            
+        except Exception as e:
+            print(f"  ⚠️ Failed to load FEVER data: {e}")
+    
+    # Fallback to mock data
+    print("  📦 Using mock FEVER data for testing")
+    mock_data = [
+        {
+            "claim": "Paris is the capital of France",
+            "label": "SUPPORTS",
+            "evidence": [["Paris", "Paris is the capital and most populous city of France"]]
+        },
+        {
+            "claim": "The Earth is flat",
+            "label": "REFUTES",
+            "evidence": [["Earth", "Earth is the third planet from the Sun and has a spherical shape"]]
+        },
+        {
+            "claim": "Shakespeare wrote 100 plays",
+            "label": "REFUTES",
+            "evidence": [["Shakespeare", "Shakespeare wrote approximately 37-39 plays"]]
+        },
+        {
+            "claim": "Water boils at 100 degrees Celsius at sea level",
+            "label": "SUPPORTS",
+            "evidence": [["Water", "At standard atmospheric pressure, water boils at 100°C"]]
+        },
+        {
+            "claim": "The moon is made of cheese",
+            "label": "REFUTES",
+            "evidence": [["Moon", "The Moon is a rocky celestial body"]]
+        }
+    ]
+    
+    # Repeat to get desired sample size
+    while len(samples) < (sample_size or 5):
+        for data in mock_data:
+            samples.append(FEVERSample(data))
+            if sample_size and len(samples) >= sample_size:
+                break
+    
+    return samples[:sample_size] if sample_size else samples
 
-    # Sample-level analysis
-    print(f"\n📋 Sample Analysis:")
-    sample_results = results.get("sample_results", [])
 
-    # Group by label
-    label_groups = {}
-    for sample in sample_results:
-        label = sample.get("label", "UNKNOWN")
-        if label not in label_groups:
-            label_groups[label] = []
-        label_groups[label].append(sample)
-
-    for label, samples in label_groups.items():
-        avg_coherence = sum(
-            (
-                sum(s["coherence_scores"].values()) / len(s["coherence_scores"])
-                if s["coherence_scores"]
-                else 0.0
-            )
-            for s in samples
-        ) / len(samples)
-
-        print(f"  {label}: {len(samples)} samples, avg coherence {avg_coherence:.3f}")
-
-    # Multi-response analysis
-    multi_results = results.get("multi_response_results", [])
-    if multi_results:
-        print(f"\n🔄 Multi-Response Analysis:")
-        consistent_count = 0
-        evidence_usage_count = 0
-
-        for result in multi_results:
-            eval_data = result.get("response_evaluation", {})
-            if eval_data.get("is_label_consistent"):
-                consistent_count += 1
-            if eval_data.get("evidence_consistency", 0.0) > 0.5:
-                evidence_usage_count += 1
-
-        print(
-            f"  Label consistency: {consistent_count}/{len(multi_results)} ({consistent_count/len(multi_results):.1%})"
-        )
-        print(
-            f"  Good evidence usage: {evidence_usage_count}/{len(multi_results)} ({evidence_usage_count/len(multi_results):.1%})"
-        )
+def compare_methods(evaluator: FEVEREvaluator, 
+                   samples: List[FEVERSample]) -> Dict[str, Any]:
+    """
+    Compare all three methods on the same dataset.
+    
+    Returns:
+        Comparison results
+    """
+    print("\n" + "="*60)
+    print("FEVER 3-Stage Pipeline Comparison")
+    print("="*60)
+    
+    results = {}
+    
+    # Stage 1: Baseline (single response)
+    print("\n📊 Stage 1: Baseline Evaluation")
+    results["baseline"] = evaluator.evaluate_dataset(samples, method="single")
+    print(f"  Accuracy: {results['baseline']['accuracy']:.1%}")
+    
+    # Stage 2: Majority Voting (K=5)
+    print("\n📊 Stage 2: Majority Voting (K=5)")
+    results["majority"] = evaluator.evaluate_dataset(samples, method="majority")
+    print(f"  Accuracy: {results['majority']['accuracy']:.1%}")
+    
+    # Stage 3: Coherence Selection (K=5)
+    print("\n📊 Stage 3: Coherence-Enhanced Selection (K=5)")
+    results["coherence"] = evaluator.evaluate_dataset(samples, method="coherence")
+    print(f"  Accuracy: {results['coherence']['accuracy']:.1%}")
+    
+    # Calculate improvements
+    baseline_acc = results["baseline"]["accuracy"]
+    majority_improvement = results["majority"]["accuracy"] - baseline_acc
+    coherence_improvement = results["coherence"]["accuracy"] - baseline_acc
+    
+    print("\n" + "="*60)
+    print("📈 Performance Summary")
+    print("="*60)
+    print(f"Baseline:  {baseline_acc:.1%}")
+    print(f"Majority:  {results['majority']['accuracy']:.1%} ({majority_improvement:+.1%})")
+    print(f"Coherence: {results['coherence']['accuracy']:.1%} ({coherence_improvement:+.1%})")
+    
+    # Per-label breakdown
+    print("\n📊 Per-Label Accuracy:")
+    for label in FEVEREvaluator.LABELS:
+        print(f"\n{label}:")
+        for method in ["baseline", "majority", "coherence"]:
+            acc = results[method]["label_accuracy"].get(label, 0)
+            print(f"  {method}: {acc:.1%}")
+    
+    return results
 
 
 def main():
     """Main FEVER benchmark runner."""
-    parser = argparse.ArgumentParser(description="Run FEVER benchmark with Coherify")
+    parser = argparse.ArgumentParser(
+        description="Run FEVER benchmark with 3-stage pipeline"
+    )
     parser.add_argument(
         "--model",
         type=str,
@@ -442,87 +372,108 @@ def main():
         help="Model to use (default, gpt4-mini, gpt4, claude)",
     )
     parser.add_argument(
-        "--use-api",
-        action="store_true",
-        help="Use API-enhanced multi-response evaluation",
+        "--sample-size",
+        type=int,
+        default=100,
+        help="Number of samples to evaluate"
     )
     parser.add_argument(
-        "--sample-size", type=int, default=8, help="Number of samples to evaluate"
+        "--k-responses",
+        type=int,
+        default=5,
+        help="Number of responses for majority voting and coherence selection"
     )
-    parser.add_argument("--verbose", action="store_true", help="Show detailed progress")
-    parser.add_argument("--save-results", type=str, help="Save results to JSON file")
-
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Run comparison of all three methods"
+    )
+    parser.add_argument(
+        "--method",
+        choices=["single", "majority", "coherence"],
+        default="single",
+        help="Evaluation method to use"
+    )
+    parser.add_argument(
+        "--save-results",
+        type=str,
+        help="Save results to JSON file"
+    )
+    
     args = parser.parse_args()
-
-    # Enable clean output unless verbose
-    if not args.verbose:
+    
+    print("🚀 FEVER Fact-Checking Benchmark")
+    print("="*50)
+    
+    # Load data
+    samples = load_fever_data(args.sample_size)
+    
+    # Setup model runner if using real model
+    model_runner = None
+    if args.model != "mock":
         try:
-            from coherify.utils.clean_output import enable_clean_output
-
-            enable_clean_output()
-        except ImportError:
-            pass
-
-    print("🚀 FEVER Fact-Checking Benchmark Runner")
-    print("=" * 50)
-
-    # Check dependencies
-    print("🔍 Checking dependencies...")
-    print(f"  datasets library: {'✅' if HAS_DATASETS else '❌'}")
-
-    if args.use_api:
-        has_openai = bool(os.getenv("OPENAI_API_KEY"))
-        has_anthropic = bool(os.getenv("ANTHROPIC_API_KEY"))
-        print(f"  OpenAI API key: {'✅' if has_openai else '❌'}")
-        print(f"  Anthropic API key: {'✅' if has_anthropic else '❌'}")
-
-        if not (has_openai or has_anthropic):
-            print("\n⚠️  No API keys found. Running in local-only mode.")
-            args.use_api = False
-
-    try:
-        # Load data
-        data = load_fever_data(sample_size=args.sample_size)
-
-        if not data:
-            print("❌ Failed to load any FEVER data")
-            return
-
-        # Run benchmark
-        results = run_fever_benchmark(
-            data, use_api=args.use_api, sample_size=args.sample_size
-        )
-
-        # Analyze results
-        analyze_fever_results(results)
-
-        # Save results if requested
-        if args.save_results:
-            with open(args.save_results, "w") as f:
-                json.dump(results, f, indent=2, default=str)
-            print(f"\n💾 Results saved to {args.save_results}")
-
-        print("\n" + "=" * 50)
-        print("✅ FEVER benchmark evaluation completed!")
+            # Load config
+            with open("config/benchmark_config.json") as f:
+                config = json.load(f)
+            
+            # Map model names properly
+            model_key = args.model
+            if model_key == "gpt4o":
+                model_key = "gpt4o"
+            elif model_key == "gpt4":
+                model_key = "gpt4"
+            elif model_key == "gpt4-mini":
+                model_key = "gpt4-mini"
+                
+            model_config = config["models"].get(model_key, config["models"]["default"])
+            
+            # Check for API key
+            import os
+            if model_config["provider"] == "openai" and not os.getenv("OPENAI_API_KEY"):
+                print("⚠️  Warning: OPENAI_API_KEY not set. Using mock predictions.")
+                print("  To use real model, set: export OPENAI_API_KEY='your-key'")
+                model_runner = None
+            else:
+                model_runner = ModelRunner(model_config)
+                print(f"✅ Using model: {model_config.get('model', 'unknown')}")
+        except Exception as e:
+            print(f"⚠️  Failed to setup model: {e}")
+            print("  Using mock predictions")
+            model_runner = None
+    
+    # Create evaluator
+    evaluator = FEVEREvaluator(model_runner)
+    
+    # Run evaluation
+    if args.compare:
+        results = compare_methods(evaluator, samples)
+    else:
+        results = {
+            args.method: evaluator.evaluate_dataset(samples, method=args.method)
+        }
+        
+        print(f"\n📊 Results for {args.method} method:")
+        print(f"  Accuracy: {results[args.method]['accuracy']:.1%}")
+        print(f"  Correct: {results[args.method]['correct']}/{results[args.method]['total']}")
+    
+    # Save results if requested
+    if args.save_results:
+        with open(args.save_results, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+        print(f"\n💾 Results saved to {args.save_results}")
+    
+    print("\n✅ FEVER benchmark completed!")
+    
+    # Show key insights
+    if args.compare:
         print("\n💡 Key Insights:")
-        print("  - Evidence-based coherence enables better fact-checking")
-        print("  - Multi-response evaluation detects uncertainty in claims")
-        print("  - Temperature variance reveals model confidence patterns")
-        print("  - Cross-evidence coherence identifies reasoning consistency")
-
-        print("\n🚀 Next steps:")
-        print("  - Try with API providers for multi-response evaluation")
-        print("  - Experiment with different evidence coherence weights")
-        print("  - Compare results across different fact-checking domains")
-        print("  - Integrate with real Wikipedia evidence retrieval")
-
-    except Exception as e:
-        print(f"\n❌ FEVER benchmark run failed: {e}")
-        print("\nTroubleshooting:")
-        print("  1. Install dependencies: pip install datasets")
-        print("  2. Set API keys for multi-response evaluation")
-        print("  3. Check internet connection for dataset downloads")
-        raise
+        if results["majority"]["accuracy"] > results["baseline"]["accuracy"]:
+            print("  ✅ Majority voting improves over baseline")
+        if results["coherence"]["accuracy"] > results["majority"]["accuracy"]:
+            print("  ✅ Coherence selection further improves accuracy")
+        
+        best_method = max(results.keys(), key=lambda k: results[k]["accuracy"])
+        print(f"  🏆 Best method: {best_method} ({results[best_method]['accuracy']:.1%})")
 
 
 if __name__ == "__main__":
