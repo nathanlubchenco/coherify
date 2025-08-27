@@ -2,13 +2,12 @@
 Focused tests to improve coverage on key modules.
 """
 
-import pytest
-import numpy as np
-from coherify.core.base import Proposition, PropositionSet, CoherenceResult
-from coherify.measures.semantic import SemanticCoherence
-from coherify.measures.hybrid import HybridCoherence
-from coherify.utils.caching import EmbeddingCache, ComputationCache
 import tempfile
+
+from coherify.core.base import CoherenceResult, Proposition, PropositionSet
+from coherify.measures.hybrid import HybridCoherence
+from coherify.measures.semantic import SemanticCoherence
+from coherify.utils.caching import ComputationCache, EmbeddingCache
 
 
 class TestSemanticCoherenceFocused:
@@ -52,7 +51,7 @@ class TestHybridCoherenceFocused:
             assert False, "Should have raised ValueError"
         except ValueError as e:
             assert "Weights must sum to 1.0" in str(e)
-        
+
         # Valid weights should work
         measure = HybridCoherence(semantic_weight=0.7, entailment_weight=0.3)
         assert abs(measure.semantic_weight + measure.entailment_weight - 1.0) < 1e-6
@@ -65,12 +64,12 @@ class TestCachingFocused:
         """Test basic embedding cache operations."""
         with tempfile.TemporaryDirectory() as temp_dir:
             cache = EmbeddingCache(cache_dir=temp_dir)
-            
+
             # Test cache key generation
             key1 = cache._get_cache_key("text1", "model")
             key2 = cache._get_cache_key("text2", "model")
             assert key1 != key2
-            
+
             # Test empty cache
             assert cache.get("nonexistent") is None
 
@@ -78,12 +77,12 @@ class TestCachingFocused:
         """Test basic computation cache."""
         with tempfile.TemporaryDirectory() as temp_dir:
             cache = ComputationCache(cache_dir=temp_dir)
-            
+
             # Test cache key generation
             key1 = cache._get_cache_key("func", (1,), {})
             key2 = cache._get_cache_key("func", (2,), {})
             assert key1 != key2
-            
+
             # Test empty cache
             assert cache.get("func", (1,), {}) is None
 
@@ -96,11 +95,11 @@ class TestPropositionSetExtended:
         # Empty answer
         prop_set = PropositionSet.from_qa_pair("Question?", "")
         assert len(prop_set.propositions) == 0
-        
+
         # Single word answer
         prop_set = PropositionSet.from_qa_pair("Question?", "Yes")
         assert len(prop_set.propositions) == 1
-        
+
         # Answer with only punctuation
         prop_set = PropositionSet.from_qa_pair("Question?", "...")
         assert len(prop_set.propositions) == 0
@@ -110,7 +109,7 @@ class TestPropositionSetExtended:
         # Empty answers list
         prop_set = PropositionSet.from_multi_answer("Question?", [])
         assert len(prop_set.propositions) == 0
-        
+
         # List with empty strings (from_multi_answer creates propositions for all inputs)
         prop_set = PropositionSet.from_multi_answer("Question?", ["", "  ", "Valid"])
         assert len(prop_set.propositions) == 3
@@ -122,8 +121,7 @@ class TestPropositionSetExtended:
         """Test metadata handling."""
         metadata = {"source": "test", "confidence": 0.8}
         prop_set = PropositionSet(
-            propositions=[Proposition(text="Test")],
-            metadata=metadata
+            propositions=[Proposition(text="Test")], metadata=metadata
         )
         assert prop_set.metadata == metadata
 
@@ -145,7 +143,7 @@ class TestCoherenceResultExtended:
             score=0.75,
             measure_name="TestMeasure",
             details={"method": "test", "pairwise_scores": [0.8, 0.7]},
-            computation_time=0.1
+            computation_time=0.1,
         )
         assert result.score == 0.75
         assert len(result.details["pairwise_scores"]) == 2
@@ -154,10 +152,7 @@ class TestCoherenceResultExtended:
     def test_coherence_result_string(self):
         """Test string representation."""
         result = CoherenceResult(
-            score=0.5, 
-            measure_name="TestMeasure",
-            details={}, 
-            computation_time=0.05
+            score=0.5, measure_name="TestMeasure", details={}, computation_time=0.05
         )
         str_repr = str(result)
         assert "0.5" in str_repr
@@ -171,16 +166,16 @@ class TestPropositionExtended:
         prop1 = Proposition(text="Same text")
         prop2 = Proposition(text="Same text")
         prop3 = Proposition(text="Different text")
-        
+
         # Propositions implement equality based on content (dataclass behavior)
         assert prop1 == prop2  # Same content
         assert prop1 != prop3  # Different content
-        
+
         # Test with metadata
         prop4 = Proposition(text="Same text", metadata={"key": "value"})
         prop5 = Proposition(text="Same text", metadata={"key": "value"})
         prop6 = Proposition(text="Same text", metadata={"key": "different"})
-        
+
         assert prop4 == prop5  # Same content and metadata
         assert prop4 != prop6  # Different metadata
         assert prop1 != prop4  # Different metadata (empty vs non-empty)

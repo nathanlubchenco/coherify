@@ -3,16 +3,13 @@ Clustering-based approximation algorithms for large proposition sets.
 Groups similar propositions and computes coherence on cluster representatives.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-    Proposition,
-)
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, Proposition, PropositionSet
 from coherify.measures.semantic import SemanticCoherence
 
 

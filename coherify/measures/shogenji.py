@@ -5,16 +5,17 @@ Implements the classical philosophical coherence measure: C_S(S) = P(H1 âˆ§ H2 â
 
 import time
 from typing import List, Optional
+
 import numpy as np
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from coherify.core.base import (
     CoherenceMeasure,
     CoherenceResult,
-    PropositionSet,
-    Proposition,
     ProbabilityEstimator,
+    Proposition,
+    PropositionSet,
 )
 from coherify.utils.caching import cached_computation
 
@@ -146,8 +147,11 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
     """
 
     def __init__(
-        self, model_name: str = "microsoft/DialoGPT-medium", use_cache: bool = True,
-        baseline_prob: float = 0.5, prob_range: tuple = (0.2, 0.8)
+        self,
+        model_name: str = "microsoft/DialoGPT-medium",
+        use_cache: bool = True,
+        baseline_prob: float = 0.5,
+        prob_range: tuple = (0.2, 0.8),
     ):
         """
         Initialize confidence-based estimator.
@@ -213,7 +217,7 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
 
             # Extract entailment/positive confidence
             raw_confidence = self.baseline_prob
-            
+
             if isinstance(results, list) and len(results) > 0:
                 if isinstance(results[0], list):
                     scores = results[0]
@@ -236,10 +240,17 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
             # Transform from [0,1] to [min_prob, max_prob] with baseline_prob as midpoint
             if raw_confidence >= self.baseline_prob:
                 # Map [baseline, 1] -> [baseline, max_prob]
-                normalized = self.baseline_prob + (raw_confidence - self.baseline_prob) * (self.max_prob - self.baseline_prob) / (1 - self.baseline_prob)
+                normalized = self.baseline_prob + (
+                    raw_confidence - self.baseline_prob
+                ) * (self.max_prob - self.baseline_prob) / (1 - self.baseline_prob)
             else:
                 # Map [0, baseline] -> [min_prob, baseline]
-                normalized = self.min_prob + raw_confidence * (self.baseline_prob - self.min_prob) / self.baseline_prob
+                normalized = (
+                    self.min_prob
+                    + raw_confidence
+                    * (self.baseline_prob - self.min_prob)
+                    / self.baseline_prob
+                )
 
             return max(min(normalized, self.max_prob), self.min_prob)
 
@@ -264,52 +275,59 @@ class ConfidenceBasedProbabilityEstimator(ProbabilityEstimator):
         # Check for contradictions using NLI between propositions
         max_contradiction_score = 0.0
         contradiction_count = 0
-        
+
         try:
             # Test pairwise contradictions
             for i in range(len(propositions)):
                 for j in range(i + 1, len(propositions)):
                     prop1_text = propositions[i].text
                     prop2_text = propositions[j].text
-                    
+
                     # Format as contradiction test
                     input_text = f"{prop1_text} </s></s> {prop2_text}"
-                    
+
                     from coherify.utils.transformers_utils import safe_pipeline_call
+
                     results = safe_pipeline_call(self.classifier, input_text)
-                    
+
                     if isinstance(results, list) and len(results) > 0:
                         if isinstance(results[0], list):
                             scores = results[0]
                         else:
                             scores = results
-                        
+
                         # Look for contradiction label
                         for score_dict in scores:
                             label = score_dict.get("label", "").upper()
                             if "CONTRADICTION" in label or label == "2":
                                 contradiction_score = score_dict.get("score", 0)
-                                max_contradiction_score = max(max_contradiction_score, contradiction_score)
-                                if contradiction_score > 0.7:  # Strong contradiction threshold
+                                max_contradiction_score = max(
+                                    max_contradiction_score, contradiction_score
+                                )
+                                if (
+                                    contradiction_score > 0.7
+                                ):  # Strong contradiction threshold
                                     contradiction_count += 1
-                                
-        except Exception as e:
+
+        except Exception:
             # If contradiction detection fails, fall back to independence assumption
             pass
 
         # Calculate joint probability with strong contradiction penalty
         independence_prob = np.exp(np.mean(np.log(individual_probs)))
-        
+
         if max_contradiction_score > 0.7:
             # Strong contradiction detected - dramatically reduce joint probability
             # Use exponential penalty based on contradiction strength and count
-            penalty = np.exp(-8 * max_contradiction_score * (1 + contradiction_count * 0.3))
+            penalty = np.exp(
+                -8 * max_contradiction_score * (1 + contradiction_count * 0.3)
+            )
             joint_prob = independence_prob * penalty
         else:
             # Weak or no contradiction - apply mild penalty
             penalty = 1 - max_contradiction_score * 0.4
             joint_prob = independence_prob * penalty
-        
+
         # Ensure result is within reasonable bounds, but allow very low probabilities for strong contradictions
         if max_contradiction_score > 0.8:
             # Allow very low joint probabilities for strong contradictions

@@ -3,16 +3,14 @@ Coherence-based filtering for generated text.
 Filters and ranks generated candidates based on coherence criteria.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
 import time
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-)
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, PropositionSet
 from coherify.measures.hybrid import HybridCoherence
 
 

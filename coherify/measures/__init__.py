@@ -1,13 +1,13 @@
 """Coherence measures."""
 
-from .semantic import SemanticCoherence
 from .entailment import EntailmentCoherence, HuggingFaceNLIWrapper, SimpleNLIModel
-from .hybrid import HybridCoherence, AdaptiveHybridCoherence
+from .hybrid import AdaptiveHybridCoherence, HybridCoherence
+from .semantic import SemanticCoherence
 from .shogenji import (
-    ShogunjiCoherence,
-    ModelBasedProbabilityEstimator,
     ConfidenceBasedProbabilityEstimator,
     EnsembleProbabilityEstimator,
+    ModelBasedProbabilityEstimator,
+    ShogunjiCoherence,
 )
 
 __all__ = [

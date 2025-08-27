@@ -3,14 +3,14 @@ SelfCheckGPT-specific benchmark integration.
 Provides specialized adapters for self-consistency evaluation using coherence measures.
 """
 
-from typing import Dict, List, Any
-import numpy as np
 from collections import defaultdict
+from typing import Any, Dict, List
 
-from coherify.core.base import PropositionSet, Proposition
+import numpy as np
+
 from coherify.benchmarks.adapters import BenchmarkAdapter
-from coherify.core.base import CoherenceMeasure
 from coherify.benchmarks.native_metrics import SelfCheckGPTMetrics
+from coherify.core.base import CoherenceMeasure, Proposition, PropositionSet
 
 
 class SelfCheckGPTAdapter(BenchmarkAdapter):
@@ -172,7 +172,9 @@ class SelfCheckGPTEvaluator:
     Provides consistency-focused evaluation metrics.
     """
 
-    def __init__(self, coherence_measure: CoherenceMeasure, consistency_method: str = "bertscore"):
+    def __init__(
+        self, coherence_measure: CoherenceMeasure, consistency_method: str = "bertscore"
+    ):
         self.coherence_measure = coherence_measure
         self.adapter = SelfCheckGPTAdapter()
         self.consistency_method = consistency_method
@@ -193,24 +195,26 @@ class SelfCheckGPTEvaluator:
         # Extract main response and sampled responses for consistency checking
         main_response = ""
         sampled_responses = []
-        
+
         # Try different keys for responses
         if "original_answer" in sample:
             main_response = sample["original_answer"]
         elif "main_response" in sample:
             main_response = sample["main_response"]
-        
+
         if "sampled_answers" in sample:
             sampled_responses = sample["sampled_answers"]
         elif "generations" in sample:
             sampled_responses = sample["generations"]
         elif "responses" in sample:
             sampled_responses = sample["responses"]
-        
+
         # Apply SelfCheckGPT consistency checking methods
         if main_response and sampled_responses:
             consistency_scores = self._calculate_consistency_scores(
-                main_response, sampled_responses, sample.get("question", sample.get("prompt", ""))
+                main_response,
+                sampled_responses,
+                sample.get("question", sample.get("prompt", "")),
             )
             evaluation.update(consistency_scores)
 
@@ -242,45 +246,47 @@ class SelfCheckGPTEvaluator:
             evaluation["max_sample_coherence"] = max(coherence_values)
 
         return evaluation
-    
+
     def _calculate_consistency_scores(
         self, main_response: str, sampled_responses: List[str], question: str = ""
     ) -> Dict[str, float]:
         """Calculate consistency scores using various SelfCheckGPT methods."""
         consistency_scores = {}
-        
+
         # BERTScore consistency
         if self.consistency_method == "bertscore" or self.consistency_method == "all":
             bertscore = SelfCheckGPTMetrics.check_consistency_bertscore(
                 main_response, sampled_responses
             )
             consistency_scores["bertscore_consistency"] = bertscore
-        
+
         # NLI consistency
         if self.consistency_method == "nli" or self.consistency_method == "all":
             nli_score = SelfCheckGPTMetrics.check_consistency_nli(
                 main_response, sampled_responses
             )
             consistency_scores["nli_consistency"] = nli_score
-        
+
         # N-gram consistency
         if self.consistency_method == "ngram" or self.consistency_method == "all":
             ngram_score = SelfCheckGPTMetrics.check_consistency_ngram(
                 main_response, sampled_responses
             )
             consistency_scores["ngram_consistency"] = ngram_score
-        
+
         # QA-based consistency
         if self.consistency_method == "qa" or self.consistency_method == "all":
             qa_score = SelfCheckGPTMetrics.check_consistency_qa_based(
                 main_response, sampled_responses, question
             )
             consistency_scores["qa_consistency"] = qa_score
-        
+
         # Calculate overall consistency score as average
         if consistency_scores:
-            consistency_scores["overall_consistency"] = np.mean(list(consistency_scores.values()))
-        
+            consistency_scores["overall_consistency"] = np.mean(
+                list(consistency_scores.values())
+            )
+
         return consistency_scores
 
     def evaluate_sentence_reliability(self, sample: Dict[str, Any]) -> Dict[str, Any]:

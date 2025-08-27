@@ -3,11 +3,12 @@ Visualization tools for coherence analysis and patterns.
 Provides plotting and analysis tools to understand coherence relationships.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
 try:
     import networkx as nx
@@ -17,10 +18,10 @@ except ImportError:
     NETWORKX_AVAILABLE = False
 
 from coherify.core.base import (
-    CoherenceResult,
-    PropositionSet,
-    Proposition,
     CoherenceMeasure,
+    CoherenceResult,
+    Proposition,
+    PropositionSet,
 )
 
 

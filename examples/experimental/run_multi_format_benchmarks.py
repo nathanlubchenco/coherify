@@ -9,11 +9,11 @@ Usage:
     python examples/run_multi_format_benchmarks.py [options]
 """
 
-import os
-import json
 import argparse
+import json
+import os
 import time
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 # Try to import required libraries
 try:
@@ -32,35 +32,26 @@ except ImportError:
     HAS_NUMPY = False
     print("⚠️  numpy not installed. Install with: pip install numpy")
 
-from coherify import (
-    SemanticCoherence,
-    HybridCoherence,
-    setup_providers,
-    get_provider,
+from coherify import HybridCoherence, SemanticCoherence, get_provider, setup_providers
+from coherify.benchmarks.faithbench_adapter import (
+    FaithBenchAdapter,
+    FaithBenchConfig,
+    FaithfulnessCoherence,
 )
-
-from coherify.measures.multi_response import (
-    TemperatureVarianceCoherence,
-    SelfConsistencyCoherence,
+from coherify.benchmarks.fever_adapter import (
+    EvidenceBasedCoherence,
+    FEVERAdapter,
+    FEVERConfig,
 )
-
 from coherify.benchmarks.multi_format_adapters import (
     GSM8KAdapter,
     HellaSwagAdapter,
     MMLUAdapter,
     MultiResponseBenchmarkConfig,
 )
-
-from coherify.benchmarks.fever_adapter import (
-    FEVERAdapter,
-    FEVERConfig,
-    EvidenceBasedCoherence,
-)
-
-from coherify.benchmarks.faithbench_adapter import (
-    FaithBenchAdapter,
-    FaithBenchConfig,
-    FaithfulnessCoherence,
+from coherify.measures.multi_response import (
+    SelfConsistencyCoherence,
+    TemperatureVarianceCoherence,
 )
 
 

@@ -5,7 +5,7 @@ Designed to work seamlessly with common NLP benchmark patterns.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

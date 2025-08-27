@@ -3,9 +3,10 @@ Coherence-guided retrieval strategies.
 Implements retrieval methods that consider coherence during the retrieval process.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Callable
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from coherify.core.base import CoherenceMeasure, PropositionSet
 from coherify.measures.semantic import SemanticCoherence
@@ -94,7 +95,7 @@ class CoherenceGuidedRetriever:
         expansion_terms = []
 
         # Extract key concepts from query
-        query_words = query.lower().split()
+        query.lower().split()
 
         # Add related terms based on semantic patterns
         semantic_expansions = {

@@ -6,7 +6,7 @@ This script demonstrates the core functionality of FEVER evidence-based
 coherence evaluation without requiring API keys.
 """
 
-from coherify import FEVERAdapter, FEVERConfig, EvidenceBasedCoherence
+from coherify import EvidenceBasedCoherence, FEVERAdapter, FEVERConfig
 
 
 def test_fever_adapter():

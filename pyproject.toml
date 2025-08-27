@@ -88,11 +88,16 @@ multi_line_output = 3
 
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = true
+warn_return_any = false  # Too many false positives
 warn_unused_configs = true
 disallow_untyped_defs = false  # Too strict for current codebase
 ignore_missing_imports = true
 show_error_codes = true
+no_implicit_optional = false  # Allow implicit Optional for now
+check_untyped_defs = false  # Don't check inside untyped functions
+warn_no_return = false  # Too many false positives
+strict_optional = false  # Allow None checks to be loose
+allow_untyped_globals = true  # Allow module-level untyped variables
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

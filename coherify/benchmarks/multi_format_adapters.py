@@ -5,13 +5,13 @@ Enhanced adapters that support multiple response generation and
 coherence evaluation across different benchmark formats.
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+import re
 from abc import abstractmethod
 from dataclasses import dataclass
-import re
+from typing import Any, Dict, List, Optional, Tuple
 
-from coherify.core.base import PropositionSet, Proposition
 from coherify.benchmarks.adapters import BenchmarkAdapter
+from coherify.core.base import Proposition, PropositionSet
 
 
 @dataclass
@@ -691,6 +691,7 @@ Options:
                 similarities.append(similarity)
 
         import numpy as np
+
         return float(np.mean(similarities)) if similarities else 1.0
 
     def _compute_subject_coherence(self, responses: List[str], subject: str) -> float:
@@ -736,4 +737,5 @@ Options:
             )  # Scale up and cap at 1.0
 
         import numpy as np
+
         return float(np.mean(coherence_scores)) if coherence_scores else 0.0

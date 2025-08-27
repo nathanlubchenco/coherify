@@ -3,15 +3,13 @@ Coherence-guided beam search for text generation.
 Integrates coherence scoring into beam search to maintain logical consistency.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Callable
-from dataclasses import dataclass, field
 import time
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-)
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, PropositionSet
 from coherify.measures.hybrid import HybridCoherence
 
 

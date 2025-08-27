@@ -10,18 +10,20 @@ This example demonstrates:
 5. Adaptive generation strategies
 """
 
-import numpy as np
 import random
 from typing import List, Tuple
-from coherify.measures import SemanticCoherence, HybridCoherence
+
+import numpy as np
+
 from coherify.generation import (
-    CoherenceGuidedBeamSearch,
-    CoherenceFilter,
-    MultiStageFilter,
     AdaptiveCoherenceFilter,
+    CoherenceFilter,
+    CoherenceGuidedBeamSearch,
     CoherenceGuidedGenerator,
+    MultiStageFilter,
     StreamingCoherenceGuide,
 )
+from coherify.measures import HybridCoherence, SemanticCoherence
 
 
 def create_mock_language_model():

@@ -3,7 +3,8 @@ Anthropic API provider for coherence evaluation.
 """
 
 import os
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 import numpy as np
 
 from .base import ModelProvider, ModelResponse
@@ -163,7 +164,7 @@ Text: "{text}"
 
 For each dimension, consider:
 1. Sentiment (negative to positive)
-2. Formality (informal to formal) 
+2. Formality (informal to formal)
 3. Complexity (simple to complex)
 4. Concreteness (abstract to concrete)
 5. Certainty (uncertain to certain)
@@ -228,7 +229,7 @@ Hypothesis: "{hypothesis}"
 
 Determine if the hypothesis:
 1. ENTAILS from the premise (logically follows)
-2. CONTRADICTS the premise (logically conflicts) 
+2. CONTRADICTS the premise (logically conflicts)
 3. Is NEUTRAL to the premise (neither follows nor conflicts)
 
 Provide confidence scores for each relationship (0.0-1.0) that sum to 1.0.

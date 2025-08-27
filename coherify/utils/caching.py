@@ -4,11 +4,12 @@ Provides embedding and computation caching to speed up coherence evaluation.
 """
 
 import hashlib
-import pickle
 import os
+import pickle
 import time
-from typing import Any, Dict, List, Optional, Union, Callable
 from functools import wraps
+from typing import Any, Callable, Dict, List, Optional, Union
+
 import numpy as np
 
 # Global cache instances
@@ -450,7 +451,7 @@ def get_default_computation_cache() -> ComputationCache:
 def clear_all_caches():
     """Clear all default caches."""
     global _default_embedding_cache, _default_computation_cache
-    
+
     # Initialize if needed
     if _default_embedding_cache is None:
         _default_embedding_cache = EmbeddingCache()

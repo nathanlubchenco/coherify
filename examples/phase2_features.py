@@ -11,19 +11,18 @@ This example demonstrates:
 """
 
 import time
+
 import numpy as np
+
 from coherify import PropositionSet
+from coherify.benchmarks import SelfCheckGPTEvaluator, TruthfulQAEvaluator
 from coherify.measures import (
-    SemanticCoherence,
+    AdaptiveHybridCoherence,
     EntailmentCoherence,
     HybridCoherence,
-    AdaptiveHybridCoherence,
+    SemanticCoherence,
 )
 from coherify.measures.entailment import SimpleNLIModel
-from coherify.benchmarks import (
-    TruthfulQAEvaluator,
-    SelfCheckGPTEvaluator,
-)
 from coherify.utils import CachedEncoder, EmbeddingCache, cached_computation
 
 
@@ -265,13 +264,13 @@ def caching_demo():
 
     print("1. First encoding (no cache):")
     start_time = time.time()
-    embeddings1 = cached_encoder.encode(test_texts)
+    cached_encoder.encode(test_texts)
     time1 = time.time() - start_time
     print(f"Time: {time1:.3f}s")
 
     print("\n2. Second encoding (with cache):")
     start_time = time.time()
-    embeddings2 = cached_encoder.encode(test_texts)
+    cached_encoder.encode(test_texts)
     time2 = time.time() - start_time
     print(f"Time: {time2:.3f}s")
     print(f"Speedup: {time1/time2:.1f}x")

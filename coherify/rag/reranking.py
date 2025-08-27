@@ -3,10 +3,11 @@ Coherence-guided reranking for RAG systems.
 Uses coherence measures to rerank retrieved passages for better context selection.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Callable
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 from coherify.core.base import CoherenceMeasure, PropositionSet
 from coherify.measures.hybrid import HybridCoherence

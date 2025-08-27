@@ -9,8 +9,8 @@ from typing import Optional
 from coherify.core.base import (
     CoherenceMeasure,
     CoherenceResult,
-    PropositionSet,
     Proposition,
+    PropositionSet,
 )
 from coherify.core.types import NLIModel
 

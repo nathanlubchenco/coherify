@@ -96,12 +96,12 @@ def create_pipeline_with_suppressed_warnings(task: str, model: str, **kwargs):
 
     Returns:
         Configured pipeline
-    
+
     Raises:
         ImportError: If transformers library is not installed
     """
     if pipeline is None:
         raise ImportError("transformers library is required but not installed")
-    
+
     with suppress_transformer_warnings():
         return pipeline(task, model=model, **kwargs)

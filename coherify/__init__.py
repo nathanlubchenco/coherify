@@ -7,104 +7,102 @@ for practical AI applications, particularly hallucination detection and reductio
 
 __version__ = "0.1.0"
 
-from coherify.core.base import CoherenceResult, Proposition, PropositionSet
-from coherify.measures.semantic import SemanticCoherence
-from coherify.measures.entailment import EntailmentCoherence
-from coherify.measures.hybrid import HybridCoherence, AdaptiveHybridCoherence
-from coherify.measures.shogenji import (
-    ShogunjiCoherence,
-    ConfidenceBasedProbabilityEstimator,
-)
-from coherify.benchmarks.adapters import QABenchmarkAdapter, get_adapter
-from coherify.benchmarks.truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator, EnhancedTruthfulQAEvaluator
-from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
-from coherify.utils.caching import CachedEncoder, EmbeddingCache
-from coherify.utils.visualization import CoherenceVisualizer, CoherenceAnalyzer
-from coherify.rag import CoherenceReranker, CoherenceRAG, CoherenceGuidedRetriever
 from coherify.approximation import (
-    RandomSampler,
-    StratifiedSampler,
-    DiversitySampler,
-    ImportanceSampler,
-    SamplingBasedApproximator,
     ClusterBasedApproximator,
+    DiversitySampler,
     HierarchicalCoherenceApproximator,
+    ImportanceSampler,
     IncrementalCoherenceTracker,
+    RandomSampler,
+    SamplingBasedApproximator,
+    StratifiedSampler,
     StreamingCoherenceEstimator,
 )
-from coherify.generation import (
-    CoherenceGuidedBeamSearch,
-    CoherenceBeamSearchDecoder,
-    CoherenceFilter,
-    AdaptiveCoherenceFilter,
-    MultiStageFilter,
-    CoherenceGuidedGenerator,
-    StreamingCoherenceGuide,
-)
-from coherify.providers import (
-    ModelProvider,
-    ModelResponse,
-    OpenAIProvider,
-    AnthropicProvider,
-    ProviderManager,
-    get_provider_manager,
-    get_provider,
-    setup_providers,
-)
-from coherify.measures.api_enhanced import (
-    APICoherenceConfig,
-    APIEnhancedSemanticCoherence,
-    APIEnhancedEntailmentCoherence,
-    APIEnhancedHybridCoherence,
-)
+from coherify.benchmarks.adapters import QABenchmarkAdapter, get_adapter
 from coherify.benchmarks.api_enhanced import (
     APIBenchmarkConfig,
-    APIEnhancedQAAdapter,
     APIBenchmarkEvaluator,
-)
-from coherify.utils.clean_output import (
-    enable_clean_output,
-    clean_output,
-    enable_clean_mode,
-)
-from coherify.measures.multi_response import (
-    MultiResponseConfig,
-    MultiResponseCoherenceMeasure,
-    TemperatureVarianceCoherence,
-    SelfConsistencyCoherence,
-)
-from coherify.benchmarks.multi_format_adapters import (
-    MultiResponseBenchmarkConfig,
-    GSM8KAdapter,
-    HellaSwagAdapter,
-    MMLUAdapter,
-)
-from coherify.benchmarks.fever_adapter import (
-    FEVERAdapter,
-    FEVERConfig,
-    EvidenceBasedCoherence,
+    APIEnhancedQAAdapter,
 )
 from coherify.benchmarks.faithbench_adapter import (
     FaithBenchAdapter,
     FaithBenchConfig,
     FaithfulnessCoherence,
 )
-from coherify.evaluators import (
-    MajorityVotingEvaluator,
-    KRunBenchmarkEvaluator,
+from coherify.benchmarks.fever_adapter import (
+    EvidenceBasedCoherence,
+    FEVERAdapter,
+    FEVERConfig,
 )
+from coherify.benchmarks.multi_format_adapters import (
+    GSM8KAdapter,
+    HellaSwagAdapter,
+    MMLUAdapter,
+    MultiResponseBenchmarkConfig,
+)
+from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
+from coherify.benchmarks.truthfulqa import (
+    EnhancedTruthfulQAEvaluator,
+    TruthfulQAAdapter,
+    TruthfulQAEvaluator,
+)
+from coherify.core.base import CoherenceResult, Proposition, PropositionSet
+from coherify.evaluators import KRunBenchmarkEvaluator, MajorityVotingEvaluator
+from coherify.generation import (
+    AdaptiveCoherenceFilter,
+    CoherenceBeamSearchDecoder,
+    CoherenceFilter,
+    CoherenceGuidedBeamSearch,
+    CoherenceGuidedGenerator,
+    MultiStageFilter,
+    StreamingCoherenceGuide,
+)
+from coherify.measures.api_enhanced import (
+    APICoherenceConfig,
+    APIEnhancedEntailmentCoherence,
+    APIEnhancedHybridCoherence,
+    APIEnhancedSemanticCoherence,
+)
+from coherify.measures.entailment import EntailmentCoherence
+from coherify.measures.hybrid import AdaptiveHybridCoherence, HybridCoherence
+from coherify.measures.multi_response import (
+    MultiResponseCoherenceMeasure,
+    MultiResponseConfig,
+    SelfConsistencyCoherence,
+    TemperatureVarianceCoherence,
+)
+from coherify.measures.semantic import SemanticCoherence
+from coherify.measures.shogenji import (
+    ConfidenceBasedProbabilityEstimator,
+    ShogunjiCoherence,
+)
+from coherify.providers import (
+    AnthropicProvider,
+    ModelProvider,
+    ModelResponse,
+    OpenAIProvider,
+    ProviderManager,
+    get_provider,
+    get_provider_manager,
+    setup_providers,
+)
+from coherify.rag import CoherenceGuidedRetriever, CoherenceRAG, CoherenceReranker
 from coherify.reporting import (
+    BenchmarkContext,
     BenchmarkReport,
     BenchmarkReporter,
-    BenchmarkContext,
-    ModelInfo,
-    ExampleResult,
     ErrorInfo,
+    ExampleResult,
+    ModelInfo,
 )
-from coherify.ui import (
-    ResultViewer,
-    start_result_server,
+from coherify.ui import ResultViewer, start_result_server
+from coherify.utils.caching import CachedEncoder, EmbeddingCache
+from coherify.utils.clean_output import (
+    clean_output,
+    enable_clean_mode,
+    enable_clean_output,
 )
+from coherify.utils.visualization import CoherenceAnalyzer, CoherenceVisualizer
 
 __all__ = [
     "CoherenceResult",

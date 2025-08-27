@@ -2,13 +2,14 @@
 Basic tests for coherify functionality.
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock
 
-from coherify.core.base import Proposition, PropositionSet, CoherenceResult
-from coherify.measures.semantic import SemanticCoherence
+import numpy as np
+import pytest
+
 from coherify.benchmarks.adapters import QABenchmarkAdapter
+from coherify.core.base import CoherenceResult, Proposition, PropositionSet
+from coherify.measures.semantic import SemanticCoherence
 
 
 class TestProposition:

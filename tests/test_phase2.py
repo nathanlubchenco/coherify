@@ -2,16 +2,17 @@
 Tests for Phase 2 features.
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock
 
+import numpy as np
+import pytest
+
+from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter
+from coherify.benchmarks.truthfulqa import TruthfulQAAdapter
 from coherify.core.base import Proposition, PropositionSet
 from coherify.measures.entailment import EntailmentCoherence, SimpleNLIModel
-from coherify.measures.hybrid import HybridCoherence, AdaptiveHybridCoherence
-from coherify.benchmarks.truthfulqa import TruthfulQAAdapter
-from coherify.benchmarks.selfcheckgpt import SelfCheckGPTAdapter
-from coherify.utils.caching import EmbeddingCache, CachedEncoder, cached_computation
+from coherify.measures.hybrid import AdaptiveHybridCoherence, HybridCoherence
+from coherify.utils.caching import CachedEncoder, EmbeddingCache, cached_computation
 
 
 class TestEntailmentCoherence:

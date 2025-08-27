@@ -1,0 +1,25 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203,E266,E501,W503,C901,E731
+
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    *.egg-info,
+    .venv,
+    venv,
+    .mypy_cache,
+    .pytest_cache,
+    htmlcov,
+    docs/_build,
+    examples/experimental/
+
+max-complexity = 15
+select = B,C,E,F,W,T4,B9
+
+per-file-ignores =
+    examples/*.py:E402
+    scripts/*.py:T201
+    tests/*.py:E501,C901

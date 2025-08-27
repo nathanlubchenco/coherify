@@ -3,18 +3,15 @@ Sampling-based approximation algorithms for large proposition sets.
 Reduces computational complexity by sampling representative subsets.
 """
 
-import numpy as np
 import random
-from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
-from abc import ABC, abstractmethod
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-    Proposition,
-)
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, Proposition, PropositionSet
 from coherify.measures.semantic import SemanticCoherence
 
 

@@ -10,17 +10,18 @@ This example demonstrates:
 """
 
 import matplotlib.pyplot as plt
+
 from coherify import PropositionSet
 from coherify.measures import (
-    SemanticCoherence,
-    EntailmentCoherence,
-    HybridCoherence,
-    ShogunjiCoherence,
     ConfidenceBasedProbabilityEstimator,
     EnsembleProbabilityEstimator,
+    EntailmentCoherence,
+    HybridCoherence,
+    SemanticCoherence,
+    ShogunjiCoherence,
 )
 from coherify.measures.entailment import SimpleNLIModel
-from coherify.utils.visualization import CoherenceVisualizer, CoherenceAnalyzer
+from coherify.utils.visualization import CoherenceAnalyzer, CoherenceVisualizer
 
 
 def traditional_shogenji_demo():
@@ -232,7 +233,6 @@ def evolution_analysis_demo():
     print("\n=== Coherence Evolution Demo ===")
 
     # Simulate improving coherence over iterations
-    base_text = "Machine learning"
     iterations = [
         "Machine learning",
         "Machine learning is useful",

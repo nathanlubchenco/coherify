@@ -1,0 +1,42 @@
+{
+  "FEVER (3-Stage Comparison)": {
+    "command": "python examples/run_fever_benchmark_fixed.py --model gpt4o --sample-size 10 --compare",
+    "metrics": {
+      "accuracy": 90.0
+    },
+    "success": true
+  },
+  "FEVER (Single Method)": {
+    "command": "python examples/run_fever_benchmark_fixed.py --model gpt4o --sample-size 10 --method single",
+    "metrics": {
+      "accuracy": 100.0
+    },
+    "success": true
+  },
+  "FaithBench (3-Stage Comparison)": {
+    "command": "python examples/run_faithbench_benchmark_fixed.py --model gpt4o --sample-size 10 --compare",
+    "metrics": {
+      "accuracy": 100.0,
+      "f1": 1.0
+    },
+    "success": true
+  },
+  "FaithBench (Single Method)": {
+    "command": "python examples/run_faithbench_benchmark_fixed.py --model gpt4o --sample-size 10 --method single",
+    "metrics": {
+      "accuracy": 90.0,
+      "f1": 1.0
+    },
+    "success": true
+  },
+  "TruthfulQA (3-Stage Comparison)": {
+    "command": "python examples/run_truthfulqa_benchmark_fixed.py --model gpt4o --sample-size 10 --compare",
+    "metrics": {},
+    "success": false
+  },
+  "TruthfulQA (Single Method)": {
+    "command": "python examples/run_truthfulqa_benchmark_fixed.py --model gpt4o --sample-size 10 --method single",
+    "metrics": {},
+    "success": false
+  }
+}

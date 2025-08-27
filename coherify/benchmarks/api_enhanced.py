@@ -3,12 +3,12 @@ API-enhanced benchmark adapters using external providers.
 """
 
 import time
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from ..core.base import PropositionSet, Proposition
-from ..providers.manager import get_provider, ModelProvider
+from ..core.base import Proposition, PropositionSet
 from ..providers.base import ModelResponse
+from ..providers.manager import ModelProvider, get_provider
 from .adapters import QABenchmarkAdapter
 
 
@@ -439,7 +439,7 @@ class APIBenchmarkEvaluator:
 
         # API Statistics
         api_stats = evaluation_results["api_statistics"]
-        report.append(f"\n--- API Enhancement Statistics ---")
+        report.append("\n--- API Enhancement Statistics ---")
         report.append(
             f"Samples with API Enhancement: {api_stats['samples_with_api_enhancement']}"
         )
@@ -451,7 +451,7 @@ class APIBenchmarkEvaluator:
 
         # Coherence Scores
         aggregate_scores = evaluation_results["aggregate_scores"]
-        report.append(f"\n--- Coherence Scores ---")
+        report.append("\n--- Coherence Scores ---")
 
         for measure_name, scores in aggregate_scores.items():
             report.append(f"{measure_name}:")

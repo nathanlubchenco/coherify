@@ -2,8 +2,8 @@
 Utilities for clean console output by suppressing non-critical warnings.
 """
 
-import warnings
 import logging
+import warnings
 from contextlib import contextmanager
 
 

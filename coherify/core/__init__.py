@@ -1,19 +1,19 @@
 """Core coherify functionality."""
 
 from .base import (
+    CoherenceMeasure,
+    CoherenceResult,
+    ProbabilityEstimator,
     Proposition,
     PropositionSet,
-    CoherenceResult,
-    CoherenceMeasure,
-    ProbabilityEstimator,
 )
 from .types import (
-    ScoreType,
     EmbeddingType,
-    SimilarityMatrix,
     Encoder,
     NLIModel,
+    ScoreType,
     SimilarityFunction,
+    SimilarityMatrix,
 )
 
 __all__ = [

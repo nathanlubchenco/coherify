@@ -3,17 +3,14 @@ Incremental and streaming approximation algorithms for dynamic proposition sets.
 Efficiently updates coherence estimates as propositions are added or removed.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Deque
-from dataclasses import dataclass, field
-from collections import deque
 import time
+from collections import deque
+from dataclasses import dataclass, field
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-    Proposition,
-)
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, Proposition, PropositionSet
 
 
 @dataclass
@@ -425,13 +422,14 @@ class AdaptiveApproximator:
 
         # Performance tracking
         from collections import defaultdict
+
         self.strategy_performance = defaultdict(list)
         self.strategy_usage = defaultdict(int)
 
     def _initialize_strategies(self):
         """Initialize strategy instances."""
-        from .sampling import RandomSampler, SamplingBasedApproximator
         from .clustering import ClusterBasedApproximator
+        from .sampling import RandomSampler, SamplingBasedApproximator
 
         if "sampling" in self.strategies:
             sampler = RandomSampler(seed=42)

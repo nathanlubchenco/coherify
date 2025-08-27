@@ -6,8 +6,8 @@ and evaluate consistency between them, enabling detection of model uncertainty
 and systematic inconsistencies.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import numpy as np
@@ -90,11 +90,11 @@ except ImportError:
 from coherify.core.base import (
     CoherenceMeasure,
     CoherenceResult,
-    PropositionSet,
     Proposition,
+    PropositionSet,
 )
-from coherify.measures.semantic import SemanticCoherence
 from coherify.measures.hybrid import HybridCoherence
+from coherify.measures.semantic import SemanticCoherence
 
 
 @dataclass

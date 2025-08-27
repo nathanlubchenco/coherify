@@ -12,21 +12,22 @@ This example demonstrates:
 
 import os
 import time
+
 from coherify import (
+    HybridCoherence,
     PropositionSet,
     SemanticCoherence,
-    HybridCoherence,
-    setup_providers,
     get_provider,
-)
-from coherify.measures.api_enhanced import (
-    APIEnhancedHybridCoherence,
-    APICoherenceConfig,
+    setup_providers,
 )
 from coherify.benchmarks.api_enhanced import (
     APIBenchmarkConfig,
-    APIEnhancedQAAdapter,
     APIBenchmarkEvaluator,
+    APIEnhancedQAAdapter,
+)
+from coherify.measures.api_enhanced import (
+    APICoherenceConfig,
+    APIEnhancedHybridCoherence,
 )
 
 

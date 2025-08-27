@@ -7,13 +7,14 @@ using local processing only (no API keys required).
 """
 
 import time
+
 from coherify import (
-    HybridCoherence,
-    SemanticCoherence,
     GSM8KAdapter,
     HellaSwagAdapter,
+    HybridCoherence,
     MMLUAdapter,
     MultiResponseBenchmarkConfig,
+    SemanticCoherence,
     TemperatureVarianceCoherence,
 )
 

@@ -2,10 +2,10 @@
 Type definitions and protocols for coherify.
 """
 
-from typing import Protocol, List, Union
+from typing import List, Protocol, Union
+
 import numpy as np
 from numpy.typing import NDArray
-
 
 # Type aliases
 ScoreType = float

@@ -9,31 +9,31 @@ Never skip official baselines. Always validate against published results.
 """
 
 from .adapters import (
+    BENCHMARK_ADAPTERS,
     BenchmarkAdapter,
+    MultiTurnDialogueAdapter,
     QABenchmarkAdapter,
     SummarizationBenchmarkAdapter,
-    MultiTurnDialogueAdapter,
     get_adapter,
     register_adapter,
-    BENCHMARK_ADAPTERS,
 )
-from .truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator
 from .selfcheckgpt import SelfCheckGPTAdapter, SelfCheckGPTEvaluator
+from .truthfulqa import TruthfulQAAdapter, TruthfulQAEvaluator
 
 # Import complete benchmarks that have BOTH official and coherence
 try:
-    from .truthfulqa_complete import TruthfulQACompleteBenchmark
+    pass
+
     HAS_COMPLETE_BENCHMARKS = True
 except ImportError:
     HAS_COMPLETE_BENCHMARKS = False
 
 # Import official evaluators for baseline establishment
 try:
-    from .official import (
-        TruthfulQAOfficialEvaluator,
-        # FEVEROfficialEvaluator,  # TODO: Implement
-        # SelfCheckGPTOfficialEvaluator,  # TODO: Implement
-    )
+    from .official import TruthfulQAOfficialEvaluator
+
+    # TODO: Implement FEVEROfficialEvaluator, SelfCheckGPTOfficialEvaluator
+
     HAS_OFFICIAL = True
 except ImportError:
     HAS_OFFICIAL = False

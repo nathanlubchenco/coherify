@@ -3,7 +3,8 @@ OpenAI API provider for coherence evaluation.
 """
 
 import os
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 import numpy as np
 
 from .base import ModelProvider, ModelResponse
@@ -148,7 +149,7 @@ class OpenAIProvider(ModelProvider):
                 },
             )
 
-        except Exception as e:
+        except Exception:
             # Fallback to standard API if reasoning API fails
             try:
                 return self.generate_text(
@@ -170,9 +171,7 @@ class OpenAIProvider(ModelProvider):
             # Use completion API with logprobs for probability estimation
             response = self.client.completions.create(
                 model=(
-                    model_to_use
-                    if model_to_use.startswith("text-")
-                    else "gpt-4o-mini"
+                    model_to_use if model_to_use.startswith("text-") else "gpt-4o-mini"
                 ),
                 prompt=text,
                 max_tokens=0,  # Just want logprobs, not generation
@@ -243,7 +242,7 @@ Hypothesis: "{hypothesis}"
 
 Classify the relationship as one of:
 - ENTAILMENT: The hypothesis logically follows from the premise
-- CONTRADICTION: The hypothesis contradicts the premise  
+- CONTRADICTION: The hypothesis contradicts the premise
 - NEUTRAL: The hypothesis is neither entailed nor contradicted
 
 Respond with only the classification and a confidence score (0.0-1.0).

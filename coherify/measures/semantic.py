@@ -5,14 +5,15 @@ This is a probability-free alternative to traditional coherence measures.
 
 import time
 from typing import Optional
+
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 from coherify.core.base import (
     CoherenceMeasure,
     CoherenceResult,
-    PropositionSet,
     Proposition,
+    PropositionSet,
 )
 from coherify.core.types import Encoder
 
@@ -51,6 +52,7 @@ class SemanticCoherence(CoherenceMeasure):
         """Get default sentence transformer encoder."""
         try:
             from sentence_transformers import SentenceTransformer
+
             from coherify.utils.transformers_utils import suppress_transformer_warnings
 
             with suppress_transformer_warnings():

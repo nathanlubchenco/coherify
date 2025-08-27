@@ -9,11 +9,13 @@ This example demonstrates:
 4. Evaluation of coherence improvements in RAG context
 """
 
-import numpy as np
 from typing import List
+
+import numpy as np
+
 from coherify import PropositionSet
-from coherify.measures import SemanticCoherence, HybridCoherence
-from coherify.rag import CoherenceReranker, CoherenceRAG, CoherenceGuidedRetriever
+from coherify.measures import HybridCoherence, SemanticCoherence
+from coherify.rag import CoherenceGuidedRetriever, CoherenceRAG, CoherenceReranker
 from coherify.rag.reranking import PassageCandidate
 
 

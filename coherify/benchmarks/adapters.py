@@ -3,10 +3,10 @@ Adapters for common benchmark formats to PropositionSet.
 This is the key to easy benchmark integration.
 """
 
-from typing import Dict, List, Any, Optional
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 
-from coherify.core.base import PropositionSet, Proposition
+from coherify.core.base import Proposition, PropositionSet
 
 
 class BenchmarkAdapter(ABC):

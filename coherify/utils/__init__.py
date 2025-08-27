@@ -1,15 +1,15 @@
 """Utility functions and classes."""
 
 from .caching import (
-    EmbeddingCache,
-    ComputationCache,
     CachedEncoder,
+    ComputationCache,
+    EmbeddingCache,
     cached_computation,
-    get_default_embedding_cache,
-    get_default_computation_cache,
     clear_all_caches,
+    get_default_computation_cache,
+    get_default_embedding_cache,
 )
-from .visualization import CoherenceVisualizer, CoherenceAnalyzer
+from .visualization import CoherenceAnalyzer, CoherenceVisualizer
 
 __all__ = [
     "EmbeddingCache",

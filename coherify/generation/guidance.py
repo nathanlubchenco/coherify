@@ -3,20 +3,18 @@ Coherence-guided generation strategies and real-time guidance systems.
 Provides high-level interfaces for coherence-guided text generation.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Union
-from dataclasses import dataclass
 import time
 from collections import deque
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from coherify.core.base import (
-    CoherenceMeasure,
-    PropositionSet,
-)
-from coherify.measures.semantic import SemanticCoherence
-from coherify.measures.hybrid import HybridCoherence
-from coherify.generation.beam_search import CoherenceGuidedBeamSearch, BeamSearchResult
+import numpy as np
+
+from coherify.core.base import CoherenceMeasure, PropositionSet
+from coherify.generation.beam_search import BeamSearchResult, CoherenceGuidedBeamSearch
 from coherify.generation.filtering import CoherenceFilter
+from coherify.measures.hybrid import HybridCoherence
+from coherify.measures.semantic import SemanticCoherence
 
 
 @dataclass

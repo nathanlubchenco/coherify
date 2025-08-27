@@ -1,14 +1,14 @@
 """Approximation algorithms for large-scale coherence computation."""
 
-from .sampling import (
-    RandomSampler,
-    StratifiedSampler,
-    DiversitySampler,
-    ImportanceSampler,
-    SamplingBasedApproximator,
-)
 from .clustering import ClusterBasedApproximator, HierarchicalCoherenceApproximator
 from .incremental import IncrementalCoherenceTracker, StreamingCoherenceEstimator
+from .sampling import (
+    DiversitySampler,
+    ImportanceSampler,
+    RandomSampler,
+    SamplingBasedApproximator,
+    StratifiedSampler,
+)
 
 __all__ = [
     "RandomSampler",

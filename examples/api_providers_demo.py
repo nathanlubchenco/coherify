@@ -13,17 +13,18 @@ This example demonstrates:
 
 import os
 import time
+
 from coherify import (
-    PropositionSet,
-    Proposition,
-    setup_providers,
-    get_provider,
-    list_available_providers,
     APICoherenceConfig,
-    APIEnhancedSemanticCoherence,
     APIEnhancedEntailmentCoherence,
     APIEnhancedHybridCoherence,
+    APIEnhancedSemanticCoherence,
     OpenAIProvider,
+    Proposition,
+    PropositionSet,
+    get_provider,
+    list_available_providers,
+    setup_providers,
 )
 
 
@@ -75,7 +76,7 @@ def api_enhanced_coherence_demo():
     # Test proposition set
     prop_set = PropositionSet.from_qa_pair(
         "Machine Learning Applications",
-        """Machine learning algorithms analyze large datasets to identify patterns and relationships. 
+        """Machine learning algorithms analyze large datasets to identify patterns and relationships.
         Neural networks use interconnected nodes to process information similar to biological brains.
         Deep learning models require substantial computational resources for training on complex data.
         These systems can make predictions and decisions based on learned patterns from historical data.""",
@@ -310,7 +311,7 @@ def reasoning_model_demo():
         # Test complex coherence scenario
         complex_prop_set = PropositionSet.from_qa_pair(
             "Complex AI Reasoning",
-            """Artificial intelligence systems can exhibit emergent behaviors that were not explicitly programmed. 
+            """Artificial intelligence systems can exhibit emergent behaviors that were not explicitly programmed.
             These behaviors arise from complex interactions between simple rules and large amounts of data.
             Machine learning models can sometimes produce unexpected outputs that challenge human understanding.
             However, the fundamental algorithms underlying AI are deterministic mathematical operations.""",

@@ -10,21 +10,22 @@ This example demonstrates:
 5. Adaptive approximation strategy selection
 """
 
-import time
 import random
-from coherify import PropositionSet, Proposition
-from coherify.measures import SemanticCoherence, HybridCoherence
+import time
+
+from coherify import Proposition, PropositionSet
 from coherify.approximation import (
-    RandomSampler,
-    StratifiedSampler,
-    DiversitySampler,
-    ImportanceSampler,
-    SamplingBasedApproximator,
     ClusterBasedApproximator,
+    DiversitySampler,
     HierarchicalCoherenceApproximator,
+    ImportanceSampler,
     IncrementalCoherenceTracker,
+    RandomSampler,
+    SamplingBasedApproximator,
+    StratifiedSampler,
     StreamingCoherenceEstimator,
 )
+from coherify.measures import HybridCoherence, SemanticCoherence
 
 
 def create_large_proposition_set(size: int = 200) -> PropositionSet:
@@ -411,7 +412,7 @@ def scalability_comparison_demo():
                     f"{method_name:<12} {size:<6} {score:<8.3f} {computation_time:<10.3f} {speedup:<8}"
                 )
 
-            except Exception as e:
+            except Exception:
                 print(
                     f"{method_name:<12} {size:<6} {'ERROR':<8} {'N/A':<10} {'N/A':<8}"
                 )

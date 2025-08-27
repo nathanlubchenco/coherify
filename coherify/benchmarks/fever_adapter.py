@@ -5,15 +5,15 @@ Adapter for FEVER (Fact Extraction and VERification) benchmark with
 evidence-based coherence evaluation for fact-checking tasks.
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from coherify.core.base import PropositionSet, Proposition
 from coherify.benchmarks.multi_format_adapters import (
     MultiResponseBenchmarkAdapter,
     MultiResponseBenchmarkConfig,
 )
+from coherify.core.base import Proposition, PropositionSet
 from coherify.measures.multi_response import (
     MultiResponseCoherenceMeasure,
     MultiResponseConfig,
@@ -43,7 +43,9 @@ class EvidenceSet:
     annotation_id: Optional[str] = None
     evidence_score: Optional[float] = None
     evidence_type: str = "single"  # "single", "multi_sentence", "multi_page"
-    requires_composition: bool = False  # True if evidence must be composed across sentences
+    requires_composition: bool = (
+        False  # True if evidence must be composed across sentences
+    )
 
 
 @dataclass
@@ -140,7 +142,7 @@ Evidence:
             prompt += """
 Please analyze the evidence step by step and determine if the claim is:
 - SUPPORTS: The evidence supports the claim
-- REFUTES: The evidence contradicts the claim  
+- REFUTES: The evidence contradicts the claim
 - NOT ENOUGH INFO: Insufficient evidence to verify the claim
 
 Provide your reasoning and final verdict."""
@@ -152,14 +154,16 @@ SUPPORTS, REFUTES, or NOT ENOUGH INFO
 Answer:"""
 
         return prompt
-    
-    def retrieve_evidence_chain(self, claim: str, evidence_data: List[List[Any]]) -> Dict[str, Any]:
+
+    def retrieve_evidence_chain(
+        self, claim: str, evidence_data: List[List[Any]]
+    ) -> Dict[str, Any]:
         """
         Retrieve and analyze multi-sentence, multi-page evidence chains for FEVER claims.
-        
+
         According to Thorne et al. (2018):
         - 31.75% of claims require multiple sentences as evidence
-        - 16.82% require evidence composition across sentences  
+        - 16.82% require evidence composition across sentences
         - 12.15% require evidence from multiple Wikipedia pages
         """
         if not evidence_data:
@@ -169,69 +173,82 @@ Answer:"""
                 "cross_page_evidence": {},
                 "evidence_type": "none",
                 "requires_composition": False,
-                "complexity_analysis": {"level": "none", "reason": "No evidence provided"}
+                "complexity_analysis": {
+                    "level": "none",
+                    "reason": "No evidence provided",
+                },
             }
-        
+
         # Analyze evidence structure
         all_evidence_sentences = []
         evidence_by_page = {}
         multi_sentence_groups = []
-        
+
         for evidence_group in evidence_data:
             if not evidence_group:
                 continue
-                
+
             group_sentences = []
             group_pages = set()
-            
+
             for evidence_item in evidence_group:
                 if len(evidence_item) >= 4:
                     ann_id, ev_id, page, sent_id = evidence_item[:4]
-                    
+
                     if page and sent_id is not None:
                         # In real implementation, would retrieve actual text from Wikipedia
                         # For now, create structured evidence representation
-                        evidence_text = self._retrieve_evidence_sentence(page, sent_id, claim)
-                        
+                        evidence_text = self._retrieve_evidence_sentence(
+                            page, sent_id, claim
+                        )
+
                         sentence_info = {
                             "text": evidence_text,
                             "page": page,
                             "sentence_id": sent_id,
                             "evidence_id": ev_id,
-                            "annotation_id": ann_id
+                            "annotation_id": ann_id,
                         }
-                        
+
                         all_evidence_sentences.append(sentence_info)
                         group_sentences.append(sentence_info)
                         group_pages.add(page)
-                        
+
                         # Group by page
                         if page not in evidence_by_page:
                             evidence_by_page[page] = []
                         evidence_by_page[page].append(sentence_info)
-            
+
             if len(group_sentences) > 1:
-                multi_sentence_groups.append({
-                    "sentences": group_sentences,
-                    "pages": list(group_pages),
-                    "requires_composition": len(group_sentences) > 1
-                })
-        
+                multi_sentence_groups.append(
+                    {
+                        "sentences": group_sentences,
+                        "pages": list(group_pages),
+                        "requires_composition": len(group_sentences) > 1,
+                    }
+                )
+
         # Determine evidence complexity
         unique_pages = set(sent["page"] for sent in all_evidence_sentences)
         requires_multi_page = len(unique_pages) > 1
-        requires_multi_sentence = any(len(group["sentences"]) > 1 for group in multi_sentence_groups)
+        requires_multi_sentence = any(
+            len(group["sentences"]) > 1 for group in multi_sentence_groups
+        )
         requires_composition = len(all_evidence_sentences) > 1
-        
+
         # Classify evidence type
         if requires_multi_page:
             evidence_type = "multi_page"
             complexity_level = "high"
-            complexity_reason = f"Requires evidence from {len(unique_pages)} Wikipedia pages"
+            complexity_reason = (
+                f"Requires evidence from {len(unique_pages)} Wikipedia pages"
+            )
         elif requires_multi_sentence:
-            evidence_type = "multi_sentence" 
+            evidence_type = "multi_sentence"
             complexity_level = "medium"
-            complexity_reason = f"Requires composition across {len(all_evidence_sentences)} sentences"
+            complexity_reason = (
+                f"Requires composition across {len(all_evidence_sentences)} sentences"
+            )
         elif len(all_evidence_sentences) == 1:
             evidence_type = "single"
             complexity_level = "low"
@@ -240,11 +257,15 @@ Answer:"""
             evidence_type = "single"
             complexity_level = "low"
             complexity_reason = "Basic single-sentence verification"
-        
+
         return {
-            "single_sentence_evidence": [sent["text"] for sent in all_evidence_sentences if len(all_evidence_sentences) == 1],
+            "single_sentence_evidence": [
+                sent["text"]
+                for sent in all_evidence_sentences
+                if len(all_evidence_sentences) == 1
+            ],
             "multi_sentence_evidence": [
-                [sent["text"] for sent in group["sentences"]] 
+                [sent["text"] for sent in group["sentences"]]
                 for group in multi_sentence_groups
             ],
             "cross_page_evidence": {
@@ -259,24 +280,26 @@ Answer:"""
                 "num_sentences": len(all_evidence_sentences),
                 "num_pages": len(unique_pages),
                 "requires_multi_page": requires_multi_page,
-                "requires_multi_sentence": requires_multi_sentence
+                "requires_multi_sentence": requires_multi_sentence,
             },
             "structured_evidence": {
                 "all_sentences": all_evidence_sentences,
                 "by_page": evidence_by_page,
-                "multi_sentence_groups": multi_sentence_groups
-            }
+                "multi_sentence_groups": multi_sentence_groups,
+            },
         }
-    
-    def _retrieve_evidence_sentence(self, page: str, sentence_id: int, claim: str) -> str:
+
+    def _retrieve_evidence_sentence(
+        self, page: str, sentence_id: int, claim: str
+    ) -> str:
         """
         Retrieve actual evidence sentence from Wikipedia page.
-        
+
         In a full implementation, this would:
         1. Query Wikipedia API for the page
         2. Extract sentence by ID
         3. Return the actual evidence text
-        
+
         For now, creates contextually relevant mock evidence.
         """
         # Mock evidence based on page name and claim context
@@ -286,34 +309,41 @@ Answer:"""
                 f"According to the Wikipedia article on {page}, sentence {sentence_id} states relevant information about the topic discussed in the claim.",
                 f"The {page} article (sentence {sentence_id}) provides factual information that can be used to verify the claim.",
                 f"From {page}: This sentence contains specific details that either support or contradict the stated claim.",
-                f"Wikipedia's {page} page (sentence {sentence_id}) offers authoritative information on this subject matter."
+                f"Wikipedia's {page} page (sentence {sentence_id}) offers authoritative information on this subject matter.",
             ]
-            
+
             # Select template based on hash of page name for consistency
             template_index = hash(page) % len(evidence_templates)
             base_text = evidence_templates[template_index]
-            
+
             # Add more specific mock content based on page name
-            if any(term in page.lower() for term in ['person', 'people', 'actor', 'writer', 'politician']):
+            if any(
+                term in page.lower()
+                for term in ["person", "people", "actor", "writer", "politician"]
+            ):
                 base_text = f"According to {page}'s Wikipedia page, biographical information in sentence {sentence_id} indicates relevant facts about this person."
-            elif any(term in page.lower() for term in ['place', 'city', 'country', 'location']):
+            elif any(
+                term in page.lower()
+                for term in ["place", "city", "country", "location"]
+            ):
                 base_text = f"The Wikipedia article about {page} contains geographical information in sentence {sentence_id} that relates to the claim."
-            elif any(term in page.lower() for term in ['event', 'war', 'battle', 'year']):
+            elif any(
+                term in page.lower() for term in ["event", "war", "battle", "year"]
+            ):
                 base_text = f"Historical information from the {page} Wikipedia page (sentence {sentence_id}) provides context for verifying this claim."
-            
+
             return base_text
         else:
-            return f"Evidence from {page}: Information relevant to the claim verification."
-    
+            return (
+                f"Evidence from {page}: Information relevant to the claim verification."
+            )
+
     def evaluate_with_evidence_composition(
-        self, 
-        claim: str, 
-        evidence_chain: Dict[str, Any],
-        responses: List[str] = None
+        self, claim: str, evidence_chain: Dict[str, Any], responses: List[str] = None
     ) -> Dict[str, Any]:
         """
         Evaluate claims requiring evidence composition from multiple sources.
-        
+
         This method specifically handles the complex FEVER cases that require:
         - Multi-sentence reasoning
         - Cross-page evidence synthesis
@@ -321,7 +351,7 @@ Answer:"""
         """
         complexity_analysis = evidence_chain.get("complexity_analysis", {})
         evidence_type = evidence_chain.get("evidence_type", "single")
-        
+
         # Base evaluation metrics
         evaluation = {
             "claim": claim,
@@ -329,218 +359,334 @@ Answer:"""
             "complexity_level": complexity_analysis.get("level", "unknown"),
             "requires_composition": evidence_chain.get("requires_composition", False),
             "num_evidence_sentences": complexity_analysis.get("num_sentences", 0),
-            "num_pages": complexity_analysis.get("num_pages", 0)
+            "num_pages": complexity_analysis.get("num_pages", 0),
         }
-        
+
         # Evaluate compositional complexity
         if evidence_type == "multi_page":
             # Cross-document coherence analysis
             cross_page_evidence = evidence_chain.get("cross_page_evidence", {})
             page_coherence_scores = []
-            
+
             pages = list(cross_page_evidence.keys())
             for i, page1 in enumerate(pages):
-                for page2 in pages[i+1:]:
+                for page2 in pages[i + 1 :]:
                     # Simple coherence check between evidence from different pages
                     evidence1 = " ".join(cross_page_evidence[page1])
                     evidence2 = " ".join(cross_page_evidence[page2])
-                    
-                    coherence_score = self._calculate_evidence_coherence(evidence1, evidence2)
+
+                    coherence_score = self._calculate_evidence_coherence(
+                        evidence1, evidence2
+                    )
                     page_coherence_scores.append(coherence_score)
-            
+
             evaluation["cross_page_coherence"] = {
-                "mean_coherence": sum(page_coherence_scores) / len(page_coherence_scores) if page_coherence_scores else 0.0,
+                "mean_coherence": (
+                    sum(page_coherence_scores) / len(page_coherence_scores)
+                    if page_coherence_scores
+                    else 0.0
+                ),
                 "coherence_scores": page_coherence_scores,
-                "pages_analyzed": len(pages)
+                "pages_analyzed": len(pages),
             }
-            
+
         elif evidence_type == "multi_sentence":
             # Multi-sentence composition analysis
-            multi_sentence_groups = evidence_chain.get("structured_evidence", {}).get("multi_sentence_groups", [])
+            multi_sentence_groups = evidence_chain.get("structured_evidence", {}).get(
+                "multi_sentence_groups", []
+            )
             composition_scores = []
-            
+
             for group in multi_sentence_groups:
                 sentences = [sent["text"] for sent in group["sentences"]]
                 if len(sentences) > 1:
                     # Check if sentences form coherent evidence chain
                     chain_coherence = self._evaluate_evidence_chain_coherence(sentences)
                     composition_scores.append(chain_coherence)
-            
+
             evaluation["multi_sentence_composition"] = {
-                "mean_composition_score": sum(composition_scores) / len(composition_scores) if composition_scores else 0.0,
+                "mean_composition_score": (
+                    sum(composition_scores) / len(composition_scores)
+                    if composition_scores
+                    else 0.0
+                ),
                 "composition_scores": composition_scores,
-                "num_groups": len(multi_sentence_groups)
+                "num_groups": len(multi_sentence_groups),
             }
-        
+
         # If responses provided, evaluate how well they handle evidence composition
         if responses:
             response_evaluations = []
-            
+
             for i, response in enumerate(responses):
                 resp_eval = {
                     "response_index": i,
-                    "handles_composition": self._response_handles_composition(response, evidence_chain),
-                    "evidence_integration_score": self._score_evidence_integration(response, evidence_chain),
-                    "reasoning_complexity": self._assess_compositional_reasoning(response, evidence_type)
+                    "handles_composition": self._response_handles_composition(
+                        response, evidence_chain
+                    ),
+                    "evidence_integration_score": self._score_evidence_integration(
+                        response, evidence_chain
+                    ),
+                    "reasoning_complexity": self._assess_compositional_reasoning(
+                        response, evidence_type
+                    ),
                 }
                 response_evaluations.append(resp_eval)
-            
+
             evaluation["response_analysis"] = response_evaluations
-            evaluation["mean_integration_score"] = sum(
-                resp["evidence_integration_score"] for resp in response_evaluations
-            ) / len(response_evaluations) if response_evaluations else 0.0
-        
+            evaluation["mean_integration_score"] = (
+                sum(resp["evidence_integration_score"] for resp in response_evaluations)
+                / len(response_evaluations)
+                if response_evaluations
+                else 0.0
+            )
+
         # Overall composition effectiveness score
-        composition_effectiveness = self._calculate_composition_effectiveness(evaluation)
+        composition_effectiveness = self._calculate_composition_effectiveness(
+            evaluation
+        )
         evaluation["composition_effectiveness"] = composition_effectiveness
-        
+
         return evaluation
-    
+
     def _calculate_evidence_coherence(self, evidence1: str, evidence2: str) -> float:
         """Calculate coherence between two evidence pieces."""
         if not evidence1 or not evidence2:
             return 0.0
-        
+
         # Simple word overlap metric (in real implementation would use embeddings)
         words1 = set(evidence1.lower().split())
         words2 = set(evidence2.lower().split())
-        
+
         if not words1 or not words2:
             return 0.0
-        
+
         intersection = len(words1.intersection(words2))
         union = len(words1.union(words2))
-        
+
         return intersection / union if union > 0 else 0.0
-    
+
     def _evaluate_evidence_chain_coherence(self, sentences: List[str]) -> float:
         """Evaluate coherence across a chain of evidence sentences."""
         if len(sentences) <= 1:
             return 1.0
-        
+
         coherence_scores = []
         for i in range(len(sentences) - 1):
             score = self._calculate_evidence_coherence(sentences[i], sentences[i + 1])
             coherence_scores.append(score)
-        
-        return sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0.0
-    
-    def _response_handles_composition(self, response: str, evidence_chain: Dict[str, Any]) -> bool:
+
+        return (
+            sum(coherence_scores) / len(coherence_scores) if coherence_scores else 0.0
+        )
+
+    def _response_handles_composition(
+        self, response: str, evidence_chain: Dict[str, Any]
+    ) -> bool:
         """Check if response properly handles evidence composition."""
         evidence_type = evidence_chain.get("evidence_type", "single")
         response_lower = response.lower()
-        
+
         composition_indicators = [
-            "multiple", "several", "various", "different", "across",
-            "combining", "together", "both", "all", "each",
-            "first", "second", "also", "furthermore", "additionally",
-            "from different", "multiple sources", "various sources"
+            "multiple",
+            "several",
+            "various",
+            "different",
+            "across",
+            "combining",
+            "together",
+            "both",
+            "all",
+            "each",
+            "first",
+            "second",
+            "also",
+            "furthermore",
+            "additionally",
+            "from different",
+            "multiple sources",
+            "various sources",
         ]
-        
-        has_composition_language = any(indicator in response_lower for indicator in composition_indicators)
-        
+
+        has_composition_language = any(
+            indicator in response_lower for indicator in composition_indicators
+        )
+
         if evidence_type == "multi_page":
             # Check for cross-page reasoning
-            cross_page_indicators = ["page", "article", "source", "according to", "from"]
-            has_cross_page_reasoning = sum(1 for indicator in cross_page_indicators if indicator in response_lower) >= 2
+            cross_page_indicators = [
+                "page",
+                "article",
+                "source",
+                "according to",
+                "from",
+            ]
+            has_cross_page_reasoning = (
+                sum(
+                    1
+                    for indicator in cross_page_indicators
+                    if indicator in response_lower
+                )
+                >= 2
+            )
             return has_composition_language and has_cross_page_reasoning
         elif evidence_type == "multi_sentence":
             # Check for multi-sentence synthesis
-            return has_composition_language and len(response.split('.')) >= 2
+            return has_composition_language and len(response.split(".")) >= 2
         else:
             return True  # Single evidence doesn't require composition
-    
-    def _score_evidence_integration(self, response: str, evidence_chain: Dict[str, Any]) -> float:
+
+    def _score_evidence_integration(
+        self, response: str, evidence_chain: Dict[str, Any]
+    ) -> float:
         """Score how well response integrates evidence from the chain."""
         evidence_sentences = []
-        
+
         # Collect all evidence sentences
         if "structured_evidence" in evidence_chain:
-            all_sentences = evidence_chain["structured_evidence"].get("all_sentences", [])
+            all_sentences = evidence_chain["structured_evidence"].get(
+                "all_sentences", []
+            )
             evidence_sentences = [sent["text"] for sent in all_sentences]
-        
+
         if not evidence_sentences:
             return 0.0
-        
+
         # Count evidence references in response
         evidence_mentions = 0
         response_words = set(response.lower().split())
-        
+
         for evidence in evidence_sentences:
             evidence_words = set(evidence.lower().split())
             # Filter common words
-            common_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+            common_words = {
+                "the",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+            }
             evidence_words_filtered = evidence_words - common_words
-            
+
             if evidence_words_filtered:
                 overlap = len(evidence_words_filtered.intersection(response_words))
                 if overlap >= 2:  # At least 2 meaningful words overlap
                     evidence_mentions += 1
-        
-        return evidence_mentions / len(evidence_sentences) if evidence_sentences else 0.0
-    
-    def _assess_compositional_reasoning(self, response: str, evidence_type: str) -> Dict[str, Any]:
+
+        return (
+            evidence_mentions / len(evidence_sentences) if evidence_sentences else 0.0
+        )
+
+    def _assess_compositional_reasoning(
+        self, response: str, evidence_type: str
+    ) -> Dict[str, Any]:
         """Assess the complexity of compositional reasoning in response."""
         response_lower = response.lower()
-        
+
         reasoning_patterns = {
             "sequential": ["first", "then", "next", "finally", "subsequently"],
-            "comparative": ["however", "but", "while", "whereas", "although", "despite"],
-            "causal": ["because", "since", "therefore", "thus", "as a result", "consequently"],
-            "aggregative": ["overall", "in total", "combined", "together", "collectively"],
-            "synthetic": ["integrating", "combining", "synthesizing", "considering all"]
+            "comparative": [
+                "however",
+                "but",
+                "while",
+                "whereas",
+                "although",
+                "despite",
+            ],
+            "causal": [
+                "because",
+                "since",
+                "therefore",
+                "thus",
+                "as a result",
+                "consequently",
+            ],
+            "aggregative": [
+                "overall",
+                "in total",
+                "combined",
+                "together",
+                "collectively",
+            ],
+            "synthetic": [
+                "integrating",
+                "combining",
+                "synthesizing",
+                "considering all",
+            ],
         }
-        
+
         pattern_counts = {}
         for pattern_type, patterns in reasoning_patterns.items():
             count = sum(1 for pattern in patterns if pattern in response_lower)
             pattern_counts[pattern_type] = count
-        
+
         total_patterns = sum(pattern_counts.values())
         complexity_score = min(total_patterns / 5, 1.0)  # Normalize to 0-1
-        
+
         expected_complexity = {
             "single": 0.2,
-            "multi_sentence": 0.5, 
-            "multi_page": 0.8
+            "multi_sentence": 0.5,
+            "multi_page": 0.8,
         }.get(evidence_type, 0.5)
-        
+
         meets_expected_complexity = complexity_score >= expected_complexity
-        
+
         return {
             "pattern_counts": pattern_counts,
             "complexity_score": complexity_score,
             "expected_complexity": expected_complexity,
             "meets_expected_complexity": meets_expected_complexity,
-            "reasoning_quality": "high" if complexity_score >= 0.7 else "medium" if complexity_score >= 0.4 else "low"
+            "reasoning_quality": (
+                "high"
+                if complexity_score >= 0.7
+                else "medium" if complexity_score >= 0.4 else "low"
+            ),
         }
-    
+
     def _calculate_composition_effectiveness(self, evaluation: Dict[str, Any]) -> float:
         """Calculate overall effectiveness of evidence composition handling."""
         effectiveness_factors = []
-        
+
         # Cross-page coherence factor
         if "cross_page_coherence" in evaluation:
-            effectiveness_factors.append(evaluation["cross_page_coherence"]["mean_coherence"])
-        
+            effectiveness_factors.append(
+                evaluation["cross_page_coherence"]["mean_coherence"]
+            )
+
         # Multi-sentence composition factor
         if "multi_sentence_composition" in evaluation:
-            effectiveness_factors.append(evaluation["multi_sentence_composition"]["mean_composition_score"])
-        
+            effectiveness_factors.append(
+                evaluation["multi_sentence_composition"]["mean_composition_score"]
+            )
+
         # Response integration factor
         if "mean_integration_score" in evaluation:
             effectiveness_factors.append(evaluation["mean_integration_score"])
-        
+
         # Reasoning complexity factor
         if "response_analysis" in evaluation:
             complexity_scores = [
-                resp["reasoning_complexity"]["complexity_score"] 
+                resp["reasoning_complexity"]["complexity_score"]
                 for resp in evaluation["response_analysis"]
             ]
             if complexity_scores:
-                effectiveness_factors.append(sum(complexity_scores) / len(complexity_scores))
-        
-        return sum(effectiveness_factors) / len(effectiveness_factors) if effectiveness_factors else 0.0
+                effectiveness_factors.append(
+                    sum(complexity_scores) / len(complexity_scores)
+                )
+
+        return (
+            sum(effectiveness_factors) / len(effectiveness_factors)
+            if effectiveness_factors
+            else 0.0
+        )
 
     def evaluate_responses(
         self, sample: Dict[str, Any], responses: List[str]
@@ -636,8 +782,8 @@ Answer:"""
 
         if evidence_data and label != "NOT ENOUGH INFO":
             # Use enhanced evidence chain analysis
-            evidence_chain = self.retrieve_evidence_chain(claim, evidence_data)
-            
+            self.retrieve_evidence_chain(claim, evidence_data)
+
             # Convert the structured evidence chain back to EvidenceSet objects
             for evidence_group in evidence_data:
                 if evidence_group:  # Skip empty evidence groups
@@ -654,9 +800,11 @@ Answer:"""
                                     str(ann_id) if ann_id is not None else "unknown"
                                 )
 
-                            # Use enhanced evidence retrieval 
+                            # Use enhanced evidence retrieval
                             if page and sent_id is not None:
-                                evidence_sentence = self._retrieve_evidence_sentence(page, sent_id, claim)
+                                evidence_sentence = self._retrieve_evidence_sentence(
+                                    page, sent_id, claim
+                                )
                                 evidence_sentences.append(evidence_sentence)
                                 sources.append(
                                     {
@@ -669,16 +817,26 @@ Answer:"""
                     if evidence_sentences:
                         # Determine evidence type and composition requirements
                         unique_pages = set(src["page"] for src in sources)
-                        evidence_type = "multi_page" if len(unique_pages) > 1 else "multi_sentence" if len(evidence_sentences) > 1 else "single"
-                        requires_composition = len(evidence_sentences) > 1 or len(unique_pages) > 1
-                        
+                        evidence_type = (
+                            "multi_page"
+                            if len(unique_pages) > 1
+                            else (
+                                "multi_sentence"
+                                if len(evidence_sentences) > 1
+                                else "single"
+                            )
+                        )
+                        requires_composition = (
+                            len(evidence_sentences) > 1 or len(unique_pages) > 1
+                        )
+
                         evidence_set = EvidenceSet(
                             claim_id=claim_id,
                             evidence_sentences=evidence_sentences,
                             sources=sources,
                             annotation_id=annotation_id,
                             evidence_type=evidence_type,
-                            requires_composition=requires_composition
+                            requires_composition=requires_composition,
                         )
                         evidence_sets.append(evidence_set)
 
@@ -691,7 +849,7 @@ Answer:"""
                     sources=[{"page": "N/A", "sentence_id": "N/A"}],
                     annotation_id="no_evidence",
                     evidence_type="none",
-                    requires_composition=False
+                    requires_composition=False,
                 )
             ]
 

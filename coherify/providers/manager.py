@@ -3,10 +3,11 @@ Provider manager for external API providers.
 """
 
 import os
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+from .anthropic_provider import AnthropicProvider
 from .base import ModelProvider
 from .openai_provider import OpenAIProvider
-from .anthropic_provider import AnthropicProvider
 
 
 class ProviderManager:

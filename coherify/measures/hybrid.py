@@ -4,13 +4,14 @@ This provides a more robust coherence evaluation than any single method.
 """
 
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import numpy as np
 
 from coherify.core.base import CoherenceMeasure, CoherenceResult, PropositionSet
-from coherify.measures.semantic import SemanticCoherence
-from coherify.measures.entailment import EntailmentCoherence
 from coherify.core.types import Encoder, NLIModel
+from coherify.measures.entailment import EntailmentCoherence
+from coherify.measures.semantic import SemanticCoherence
 
 
 class HybridCoherence(CoherenceMeasure):
@@ -222,7 +223,9 @@ class AdaptiveHybridCoherence(HybridCoherence):
         if not all_words:
             vocabulary_diversity = 0.0
         else:
-            vocabulary_diversity = len(set(" ".join(propositions).lower().split())) / len(all_words)
+            vocabulary_diversity = len(
+                set(" ".join(propositions).lower().split())
+            ) / len(all_words)
 
         # Adjust weights based on characteristics
         semantic_weight = self.base_semantic_weight

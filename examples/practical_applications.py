@@ -11,22 +11,24 @@ This comprehensive example demonstrates real-world applications:
 6. Production RAG System with Coherence
 """
 
-import numpy as np
 import time
 from typing import List
+
+import numpy as np
+
 from coherify import (
-    PropositionSet,
-    Proposition,
-    SemanticCoherence,
+    ClusterBasedApproximator,
+    CoherenceAnalyzer,
+    CoherenceFilter,
+    CoherenceGuidedGenerator,
+    CoherenceRAG,
+    CoherenceReranker,
     EntailmentCoherence,
     HybridCoherence,
-    CoherenceAnalyzer,
-    CoherenceReranker,
-    CoherenceRAG,
-    ClusterBasedApproximator,
     IncrementalCoherenceTracker,
-    CoherenceGuidedGenerator,
-    CoherenceFilter,
+    Proposition,
+    PropositionSet,
+    SemanticCoherence,
 )
 
 
@@ -258,7 +260,7 @@ def educational_content_evaluation():
     education_analyzer = CoherenceAnalyzer()
 
     # Incremental coherence tracker for content development
-    tracker = IncrementalCoherenceTracker(HybridCoherence())
+    IncrementalCoherenceTracker(HybridCoherence())
 
     lesson_results = []
 

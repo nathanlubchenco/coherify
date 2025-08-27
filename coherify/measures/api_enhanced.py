@@ -2,15 +2,16 @@
 API-enhanced coherence measures using external providers.
 """
 
-import numpy as np
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from ..core.base import CoherenceResult, PropositionSet
-from ..providers.manager import get_provider, ModelProvider
-from .semantic import SemanticCoherence
+from ..providers.manager import ModelProvider, get_provider
 from .entailment import EntailmentCoherence
 from .hybrid import HybridCoherence
+from .semantic import SemanticCoherence
 
 
 @dataclass

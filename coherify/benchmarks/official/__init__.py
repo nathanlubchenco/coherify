@@ -8,19 +8,22 @@ CRITICAL: Never skip official evaluation. Always establish baselines first.
 """
 
 try:
-    from .truthfulqa_official import TruthfulQAOfficialEvaluator
+    pass
+
     HAS_TRUTHFULQA = True
 except ImportError:
     HAS_TRUTHFULQA = False
 
 try:
-    from .fever_official import FEVEROfficialEvaluator
+    pass
+
     HAS_FEVER = True
 except ImportError:
     HAS_FEVER = False
 
 try:
-    from .selfcheckgpt_official import SelfCheckGPTOfficialEvaluator
+    pass
+
     HAS_SELFCHECKGPT = True
 except ImportError:
     HAS_SELFCHECKGPT = False

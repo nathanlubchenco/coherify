@@ -7,10 +7,7 @@ This module provides higher-level evaluation patterns including:
 - Confidence-based result combination
 """
 
-from .majority_voting import MajorityVotingEvaluator
 from .k_run import KRunBenchmarkEvaluator
+from .majority_voting import MajorityVotingEvaluator
 
-__all__ = [
-    "MajorityVotingEvaluator", 
-    "KRunBenchmarkEvaluator"
-]
+__all__ = ["MajorityVotingEvaluator", "KRunBenchmarkEvaluator"]
