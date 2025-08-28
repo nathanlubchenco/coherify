@@ -81,7 +81,7 @@ Coherence: 100.0% F1 score
 - Vulnerable to occasional errors
 
 ### Stage 2: Majority Voting (K=5)
-- **Best overall performance** 
+- **Best overall performance**
 - FEVER: +6.7% improvement
 - Reduces random errors effectively
 - 5x API cost

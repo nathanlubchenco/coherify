@@ -42,27 +42,27 @@ This correction was critical - coherence is a BOTH/AND not an either/or. We must
 ## Key Architectural Decisions
 
 ### 1. Probability-Free Approach
-**Decision**: Prioritize semantic similarity and entailment over traditional probability-based measures  
-**Rationale**: LLMs are poorly calibrated for probability estimates  
-**Impact**: More reliable, practical, and computationally efficient evaluation  
+**Decision**: Prioritize semantic similarity and entailment over traditional probability-based measures
+**Rationale**: LLMs are poorly calibrated for probability estimates
+**Impact**: More reliable, practical, and computationally efficient evaluation
 **Lesson**: Pragmatic adaptations often work better than pure theory
 
 ### 2. Universal PropositionSet Container
-**Decision**: All benchmarks convert to standardized PropositionSet format  
-**Rationale**: Enables coherence measures to be benchmark-agnostic  
-**Impact**: Seamless integration with any evaluation framework  
+**Decision**: All benchmarks convert to standardized PropositionSet format
+**Rationale**: Enables coherence measures to be benchmark-agnostic
+**Impact**: Seamless integration with any evaluation framework
 **Lesson**: Good abstractions pay dividends in extensibility
 
 ### 3. Hybrid Coherence as Primary
-**Decision**: Combine semantic + entailment rather than single measures  
-**Rationale**: Different aspects of coherence require different evaluation  
-**Impact**: More robust and nuanced coherence evaluation  
+**Decision**: Combine semantic + entailment rather than single measures
+**Rationale**: Different aspects of coherence require different evaluation
+**Impact**: More robust and nuanced coherence evaluation
 **Lesson**: Multi-dimensional approaches outperform single metrics
 
 ### 4. Caching-First Performance
-**Decision**: Built comprehensive caching from early stages  
-**Rationale**: Coherence computation involves expensive ML inference  
-**Impact**: 10,000x+ speedup on repeated computations  
+**Decision**: Built comprehensive caching from early stages
+**Rationale**: Coherence computation involves expensive ML inference
+**Impact**: 10,000x+ speedup on repeated computations
 **Lesson**: Performance optimizations should be architectural
 
 ## Implementation Lessons Learned

@@ -6,7 +6,7 @@ We've successfully restructured Coherify from a fundamentally flawed approach to
 
 ### Before (❌ Wrong)
 - Treated coherence as a replacement metric for benchmarks
-- Used ground truth answers instead of generating responses  
+- Used ground truth answers instead of generating responses
 - Evaluated with fuzzy string matching instead of proper methods
 - No comparison baseline (unfair single vs K comparison)
 
@@ -39,19 +39,19 @@ graph LR
     B --> C[1 Response]
     C --> D[Evaluate]
     D --> E[Stage 1 Score]
-    
+
     A --> F[Model]
     F --> G[K Responses]
     G --> H[Majority Vote]
     H --> I[Evaluate]
     I --> J[Stage 2 Score]
-    
+
     A --> K[Model]
     K --> L[K Responses]
     L --> M[Coherence Select]
     M --> N[Evaluate]
     N --> O[Stage 3 Score]
-    
+
     E --> P[Compare]
     J --> P
     O --> P

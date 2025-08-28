@@ -65,13 +65,13 @@ class BenchmarkEvaluator:
         """Stage 1: Single response baseline"""
         response = model.generate(prompt)
         return extract_answer(response)
-    
+
     def evaluate_majority(self, sample, k=5):
         """Stage 2: Majority voting"""
         responses = [model.generate(prompt) for _ in range(k)]
         answers = [extract_answer(r) for r in responses]
         return majority_vote(answers)
-    
+
     def evaluate_coherence(self, sample, k=5):
         """Stage 3: Coherence selection"""
         responses = model.generate_k_responses(prompt, k)
@@ -147,7 +147,7 @@ python examples/run_fever_benchmark_fixed.py --compare --model gpt4-mini --sampl
 
 ## Conclusion
 
-The critical insight is that **coherence is a tool to improve benchmark performance, not a replacement for benchmark metrics**. 
+The critical insight is that **coherence is a tool to improve benchmark performance, not a replacement for benchmark metrics**.
 
 We don't report "coherence scores" as results. We report:
 - FEVER accuracy improved by X%

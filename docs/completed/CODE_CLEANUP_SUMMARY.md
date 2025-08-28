@@ -8,7 +8,7 @@ Removed all broken/unfixed versions of benchmark scripts and consolidated to sin
 ### 1. Removed Broken Scripts
 ```bash
 ✅ Deleted: examples/run_fever_benchmark.py (broken version)
-✅ Deleted: examples/run_truthfulqa_benchmark.py (broken version)  
+✅ Deleted: examples/run_truthfulqa_benchmark.py (broken version)
 ✅ Deleted: examples/run_faithbench_benchmark.py (broken version)
 ```
 
@@ -61,7 +61,7 @@ Scripts that need more work before production use:
 # FEVER fact-checking
 make benchmark-fever MODEL=gpt4o SAMPLES=20
 
-# TruthfulQA  
+# TruthfulQA
 make benchmark-truthfulqa MODEL=gpt4o SAMPLES=20
 
 # FaithBench hallucination detection
@@ -85,7 +85,7 @@ python examples/run_fever_benchmark.py --model mock --sample-size 10
 ## Benefits of Cleanup
 
 1. **Single Source of Truth**: Each benchmark has one correct implementation
-2. **Clear Organization**: Working scripts in examples/, experimental in subdirectory  
+2. **Clear Organization**: Working scripts in examples/, experimental in subdirectory
 3. **Reduced Confusion**: No more "_fixed" vs broken versions
 4. **Maintainability**: Easier to update and debug single implementation
 5. **Documentation**: Clear status of each script
@@ -96,7 +96,7 @@ python examples/run_fever_benchmark.py --model mock --sample-size 10
 - Fix comprehensive_benchmark_demo.py to show real metrics
 - Implement proper evaluation for GSM8K, MMLU, HellaSwag
 
-### Medium Priority  
+### Medium Priority
 - Add progress bars for long-running evaluations
 - Implement result caching to reduce API costs
 - Add visualization dashboard for results

@@ -353,7 +353,7 @@ from coherify import ClusterBasedApproximator, RandomSampler
 approximator = ClusterBasedApproximator()
 result = approximator.approximate_coherence(large_prop_set, target_clusters=20)
 
-# Sampling approximation  
+# Sampling approximation
 sampler = RandomSampler()
 result = sampler.approximate_coherence(large_prop_set, sample_size=100)
 ```
@@ -368,7 +368,7 @@ python examples/run_truthfulqa_benchmark.py --sample-size 10
 # Time: 4 seconds, Cost: FREE
 
 # Day 2: Feature testing
-python examples/run_truthfulqa_benchmark.py --sample-size 50  
+python examples/run_truthfulqa_benchmark.py --sample-size 50
 # Time: 22 seconds, Cost: FREE
 
 # Week 1: Integration testing
@@ -403,7 +403,7 @@ python examples/run_truthfulqa_benchmark.py --use-api --sample-size 817
 python examples/run_truthfulqa_benchmark.py --sample-size 50
 # Time: 22 seconds, Cost: FREE
 
-# Weekly quality assessment  
+# Weekly quality assessment
 python examples/run_truthfulqa_benchmark.py --sample-size 200
 # Time: 1.5 minutes, Cost: FREE
 
@@ -454,7 +454,7 @@ python examples/run_truthfulqa_benchmark.py --sample-size 10 --verbose
 
 # Shows detailed timing:
 # - Model loading time
-# - Per-sample processing time  
+# - Per-sample processing time
 # - Memory usage
 # - Throughput calculations
 ```

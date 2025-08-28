@@ -11,7 +11,7 @@ We are NOT trying to improve benchmark evaluation methods themselves. Instead, w
 ### Stage 1: Official Baselines ✅
 **Purpose**: Validation that our benchmark implementations are correct
 - Faithfully reproduce official evaluation methods (GPT-judge, BLEURT, BERTScore)
-- Validate against published results 
+- Validate against published results
 - This establishes that our experimental setup is sound
 
 ### Stage 2: K-Pass Majority Voting Baseline
@@ -202,7 +202,7 @@ print(f"Mean coherence: {np.mean(coherence_scores):.3f}")
 
 Coherify's benchmark implementations are designed for:
 - ✅ Coherence-based evaluation
-- ✅ Relative model comparisons  
+- ✅ Relative model comparisons
 - ✅ Rapid development and testing
 - ❌ Official benchmark scoring
 - ❌ Leaderboard submissions

@@ -24,12 +24,12 @@
 ### Stage 1: Official Baselines ✅
 - **Status**: COMPLETE
 - **What it does**: Single response → Official evaluation → Baseline score
-- **Key files**: 
+- **Key files**:
   - `/coherify/benchmarks/official/truthfulqa_official.py`
   - `/coherify/generation/model_runner.py`
 
 ### Stage 2: K-pass Majority Voting ✅
-- **Status**: COMPLETE  
+- **Status**: COMPLETE
 - **What it does**: K responses → Majority vote → Official evaluation → K-pass score
 - **Key files**:
   - `/coherify/evaluators/response_selectors.py` (MajorityVotingSelector)

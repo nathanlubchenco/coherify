@@ -165,7 +165,7 @@ Expected output:
 ==================================================
 🧮 Testing GSM8K Adapter
   Coherence score: 0.663
-🤔 Testing HellaSwag Adapter  
+🤔 Testing HellaSwag Adapter
   Coherence score: 0.947
 📚 Testing MMLU Adapter
   Coherence score: 0.327
@@ -188,7 +188,7 @@ runner = MultiBenchmarkRunner(use_api=True)
 # Run all supported benchmarks
 results = {
     "GSM8K": runner.run_gsm8k_benchmark(sample_size=10),
-    "HellaSwag": runner.run_hellaswag_benchmark(sample_size=10), 
+    "HellaSwag": runner.run_hellaswag_benchmark(sample_size=10),
     "MMLU": runner.run_mmlu_benchmark(sample_size=10)
 }
 
@@ -206,17 +206,17 @@ from coherify.benchmarks.multi_format_adapters import MultiResponseBenchmarkAdap
 class CustomBenchmarkAdapter(MultiResponseBenchmarkAdapter):
     def __init__(self, config, provider=None):
         super().__init__("CustomBenchmark", config, provider)
-    
+
     def adapt_single(self, sample):
         """Convert sample to PropositionSet."""
         # Your adaptation logic here
         pass
-    
+
     def format_prompt(self, sample):
         """Format sample as prompt for generation."""
         # Your prompt formatting logic here
         pass
-    
+
     def evaluate_responses(self, sample, responses):
         """Evaluate generated responses."""
         # Your evaluation logic here
@@ -331,11 +331,11 @@ for rec in analysis["recommendations"]:
 # Create custom evaluation pipeline
 def custom_multi_response_evaluation(samples, adapter, measures):
     results = []
-    
+
     for sample in samples:
         # Multi-response adaptation
         multi_result = adapter.adapt_single_with_multi_response(sample)
-        
+
         # Evaluate with multiple measures
         sample_scores = {}
         for measure in measures:
@@ -350,13 +350,13 @@ def custom_multi_response_evaluation(samples, adapter, measures):
                 prop_set = multi_result["proposition_set"]
                 result = measure.compute(prop_set)
                 sample_scores[measure.__class__.__name__] = result.score
-        
+
         results.append({
             "sample": sample,
             "scores": sample_scores,
             "multi_response_data": multi_result
         })
-    
+
     return results
 ```
 
@@ -366,12 +366,12 @@ def custom_multi_response_evaluation(samples, adapter, measures):
 # Optimize for large-scale evaluation
 def optimized_batch_evaluation(data, adapter, batch_size=50):
     """Process large datasets efficiently."""
-    
+
     results = []
-    
+
     for i in range(0, len(data), batch_size):
         batch = data[i:i + batch_size]
-        
+
         # Process batch
         batch_results = []
         for sample in batch:
@@ -382,12 +382,12 @@ def optimized_batch_evaluation(data, adapter, batch_size=50):
             except Exception as e:
                 print(f"Sample {i} failed: {e}")
                 continue
-        
+
         results.extend(batch_results)
-        
+
         # Progress update
         print(f"Processed {min(i + batch_size, len(data))}/{len(data)} samples")
-    
+
     return results
 ```
 
@@ -492,26 +492,26 @@ research_config = MultiResponseBenchmarkConfig(
 ```python
 def robust_evaluation(samples, adapter, measures):
     """Robust evaluation with proper error handling."""
-    
+
     results = []
     failed_samples = []
-    
+
     for i, sample in enumerate(samples):
         try:
             # Multi-response evaluation with timeout
             result = adapter.adapt_single_with_multi_response(sample)
-            
+
             # Validate result quality
             if result.get("multi_response_enabled") and len(result.get("generated_responses", [])) == 0:
                 print(f"Warning: No responses generated for sample {i}")
                 continue
-            
+
             results.append(result)
-            
+
         except Exception as e:
             failed_samples.append({"index": i, "error": str(e)})
             print(f"Sample {i} failed: {e}")
-    
+
     return {
         "results": results,
         "failed_samples": failed_samples,
@@ -525,20 +525,20 @@ def robust_evaluation(samples, adapter, measures):
 # Estimate costs before running
 def estimate_evaluation_cost(num_samples, config, provider_name="openai"):
     """Estimate API costs for multi-response evaluation."""
-    
+
     tokens_per_sample = 50  # Average
     responses_per_sample = config.num_responses_per_sample
-    
+
     total_tokens = num_samples * tokens_per_sample * responses_per_sample
-    
+
     # Cost estimates (per 1K tokens)
     cost_estimates = {
         "openai": {"gpt-4": 0.03, "gpt-3.5-turbo": 0.002},
         "anthropic": {"claude-3.5-sonnet": 0.003, "claude-3-haiku": 0.00025}
     }
-    
+
     estimated_cost = (total_tokens / 1000) * cost_estimates.get(provider_name, {}).get("gpt-4", 0.03)
-    
+
     return {
         "total_tokens": total_tokens,
         "estimated_cost": estimated_cost,

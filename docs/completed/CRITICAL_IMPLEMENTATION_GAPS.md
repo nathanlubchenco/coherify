@@ -14,13 +14,13 @@ Our current implementation fundamentally misunderstands the research methodology
 
 **What Should Happen:**
 - **TruthfulQA**: Use GPT-judge or BLEURT for evaluation (NOT string matching)
-- **FEVER**: Use evidence retrieval + label verification 
+- **FEVER**: Use evidence retrieval + label verification
 - **SelfCheckGPT**: Use BERTScore for consistency across multiple generations
 
 ### 2. **Not Actually Running Model Inference**
 
 **Current Implementation:**
-- Using mock responses like "N/A" 
+- Using mock responses like "N/A"
 - No actual model API calls happening
 - Predictions array filled with placeholder data
 
@@ -39,7 +39,7 @@ Enhanced Evaluator → Coherence Scores → Determine Correctness
 **What Should Happen:**
 ```
 Stage 1: Official Benchmark → Baseline Score
-Stage 2: Generate K responses → Majority Voting → K-pass Score  
+Stage 2: Generate K responses → Majority Voting → K-pass Score
 Stage 3: Generate K responses → Coherence Selection → Enhanced Score
 Compare: Enhanced Score > K-pass Score > Baseline Score
 ```
@@ -74,7 +74,7 @@ for sample in samples:
 
 ### Fix 2: Use Official Evaluation Methods
 ```python
-# Current (WRONG) 
+# Current (WRONG)
 is_truthful = fuzzy_match(prediction, correct_answers)
 
 # Should be

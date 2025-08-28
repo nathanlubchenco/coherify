@@ -7,7 +7,7 @@ Coherify uses **coherence measures to select better responses** from multiple LL
 **Coherence is NOT a replacement for benchmarks - it's an enhancement layer!**
 
 The research pipeline has THREE stages:
-1. **Baseline**: Generate 1 response → Evaluate 
+1. **Baseline**: Generate 1 response → Evaluate
 2. **K-pass**: Generate K responses → Pick by majority vote → Evaluate
 3. **Coherence**: Generate K responses → Pick by coherence → Evaluate
 
@@ -19,7 +19,7 @@ Goal: Show that Stage 3 > Stage 2 > Stage 1
 /coherify/
 ├── generation/          # NEW: Actual model API calls
 │   └── model_runner.py  # Handles OpenAI/Anthropic generation
-├── evaluators/          # NEW: Response selection mechanisms  
+├── evaluators/          # NEW: Response selection mechanisms
 │   └── response_selectors.py  # Majority voting & coherence selection
 ├── benchmarks/
 │   ├── official/        # FIXED: Proper evaluation methods

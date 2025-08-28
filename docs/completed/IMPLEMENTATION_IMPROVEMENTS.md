@@ -13,7 +13,7 @@ Based on analysis of the official benchmark repositories and our new documentati
 ```python
 # Priority 1: Add Multiple-Choice Support
 - [ ] Implement MC1 (single correct answer) evaluation
-- [ ] Implement MC2 (multiple correct answers) evaluation  
+- [ ] Implement MC2 (multiple correct answers) evaluation
 - [ ] Add new improved MC format from Jan 2025 update
 
 # Priority 2: Complete Metric Suite
@@ -39,7 +39,7 @@ class TruthfulQACompleteEvaluator:
             'mc1': MultipleChoiceMetric(mode='single'),
             'mc2': MultipleChoiceMetric(mode='multiple')
         }
-    
+
     def evaluate(self, response, sample):
         results = {}
         for name, metric in self.metrics.items():
@@ -80,26 +80,26 @@ class CoherenceConsistencySelector:
         self.selfcheck_nli = SelfCheckNLI(device='cuda')
         self.selfcheck_prompt = SelfCheckLLMPrompt('gpt-4o')
         self.coherence_measure = SemanticCoherence()
-    
+
     def select_response(self, responses, alpha=0.5):
         # Compute consistency scores
         consistency_scores = self.selfcheck_nli.predict(
             sentences=[r.text for r in responses],
             sampled_passages=responses[1:]  # Use other responses as samples
         )
-        
+
         # Compute coherence scores
         coherence_scores = [
-            self.coherence_measure.compute(r) 
+            self.coherence_measure.compute(r)
             for r in responses
         ]
-        
+
         # Hybrid score: low consistency = high hallucination
         hybrid_scores = [
             alpha * (1 - consistency) + (1 - alpha) * coherence
             for consistency, coherence in zip(consistency_scores, coherence_scores)
         ]
-        
+
         return responses[np.argmax(hybrid_scores)]
 ```
 
@@ -128,7 +128,7 @@ class CoherenceConsistencySelector:
 class AdaptiveTemperatureGenerator:
     def __init__(self, base_temp=0.7):
         self.base_temp = base_temp
-        
+
     def generate_k_responses(self, prompt, k=5, difficulty=None):
         # Adaptive temperature based on difficulty
         if difficulty == 'hard':
@@ -138,7 +138,7 @@ class AdaptiveTemperatureGenerator:
         else:
             # Default: exponential spacing for diversity
             temps = self.base_temp * np.exp(np.linspace(-0.3, 0.3, k))
-        
+
         responses = []
         for temp in temps:
             response = self.model.generate(prompt, temperature=temp)
@@ -219,7 +219,7 @@ class UnifiedCoherenceEvaluator:
             'fever': FEVEREvaluator(),
             'halueval': HaluEvalEvaluator()
         }
-        
+
         self.methods = {
             'baseline': SingleResponseBaseline(),
             'majority': MajorityVotingSelector(),
@@ -227,7 +227,7 @@ class UnifiedCoherenceEvaluator:
             'consistency': SelfCheckConsistencySelector(),
             'hybrid': HybridCoherenceConsistencySelector()
         }
-        
+
         self.model_strategy = {
             'generation': 'gpt-4o-mini',  # Cost efficient
             'evaluation': 'gpt-4o',        # High quality

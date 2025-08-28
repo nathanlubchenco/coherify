@@ -15,7 +15,7 @@ model_config = {
 
 # Cost Efficient
 model_config = {
-    "provider": "openai", 
+    "provider": "openai",
     "model": "gpt-4o-mini",
     "temperature": 0.7,
     "max_tokens": 1000
@@ -103,7 +103,7 @@ def generate_k_responses(prompt, k=5):
         0.9,   # More creative
         1.0    # Most varied
     ]
-    
+
     responses = []
     for temp in temperatures[:k]:
         response = model.generate(

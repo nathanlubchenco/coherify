@@ -8,7 +8,7 @@
 **Model ID**: `gpt-4o`
 - **Description**: Most capable multimodal model with vision, function calling, and JSON mode
 - **Context Window**: 128K tokens
-- **Max Output**: 16,384 tokens  
+- **Max Output**: 16,384 tokens
 - **Temperature**: 0-2 (default: 1)
 - **Knowledge Cutoff**: October 2023
 - **Use Cases**: Complex reasoning, analysis, code generation, multimodal tasks
@@ -70,7 +70,7 @@ model_config = {
 def generate_k_responses(prompt, k=5):
     base_temp = 0.7
     temperatures = [base_temp + 0.1 * i for i in range(k)]
-    
+
     responses = []
     for temp in temperatures:
         response = openai.chat.completions.create(

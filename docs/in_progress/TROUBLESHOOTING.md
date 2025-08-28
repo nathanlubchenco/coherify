@@ -4,7 +4,7 @@
 
 ### 1. "Performance 0.0% is unrealistically low"
 
-**Symptoms**: 
+**Symptoms**:
 - All evaluations showing 0% performance
 - Warning messages about unrealistic performance
 
@@ -47,7 +47,7 @@ python examples/run_full_pipeline_comparison.py --model gpt4-mini --samples 2 --
 ```python
 # Wrong
 response = provider.generate(prompt)
-# Correct  
+# Correct
 response = provider.generate_text(prompt)
 ```
 

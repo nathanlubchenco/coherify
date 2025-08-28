@@ -123,16 +123,16 @@ def run_3_stage_pipeline(sample):
     # Stage 1: Baseline
     single_response = generate_one(sample)
     baseline_score = evaluate_benchmark_performance(single_response)
-    
+
     # Stage 2: Majority Voting
     k_responses = generate_k(sample, k=5)
     majority_answer = majority_vote(k_responses)
     majority_score = evaluate_benchmark_performance(majority_answer)
-    
+
     # Stage 3: Coherence Selection
     best_response = coherence_select(k_responses)
     coherence_score = evaluate_benchmark_performance(best_response)
-    
+
     return {
         "baseline": baseline_score,      # e.g., 45% accurate
         "majority": majority_score,      # e.g., 52% accurate
@@ -183,12 +183,12 @@ class BenchmarkEvaluator:
         """Evaluate actual benchmark metric for one response"""
         # Extract answer from response
         answer = self.extract_answer(response)
-        
+
         # Check if correct
         is_correct = self.check_correctness(answer, sample.ground_truth)
-        
+
         return is_correct  # Returns True/False or score
-    
+
     def run_baseline(self, samples):
         """Stage 1: Single response"""
         correct = 0
@@ -197,7 +197,7 @@ class BenchmarkEvaluator:
             if self.evaluate_single_response(sample, response):
                 correct += 1
         return correct / len(samples)
-    
+
     def run_majority_voting(self, samples, k=5):
         """Stage 2: K responses with voting"""
         correct = 0
@@ -208,7 +208,7 @@ class BenchmarkEvaluator:
             if self.check_correctness(majority_answer, sample.ground_truth):
                 correct += 1
         return correct / len(samples)
-    
+
     def run_coherence_selection(self, samples, k=5):
         """Stage 3: K responses with coherence selection"""
         correct = 0
