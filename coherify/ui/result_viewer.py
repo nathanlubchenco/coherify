@@ -9,7 +9,7 @@ import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 
@@ -17,7 +17,7 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
     """HTTP request handler for serving benchmark results."""
 
     # Class variable to store results directory
-    results_dir = None
+    results_dir: Path = Path("results")
 
     def log_message(self, format, *args):
         """Override to reduce logging noise."""
@@ -522,9 +522,6 @@ class ResultViewerHandler(BaseHTTPRequestHandler):
         error_data = {"error": message, "code": code}
         self.wfile.write(json.dumps(error_data).encode())
 
-    def log_message(self, format, *args):
-        """Override to reduce log spam."""
-
 
 class ResultViewer:
     """
@@ -539,8 +536,8 @@ class ResultViewer:
         self.results_dir = Path(results_dir)
         self.results_dir.mkdir(exist_ok=True)
         self.port = port
-        self.server = None
-        self.server_thread = None
+        self.server: Optional[HTTPServer] = None
+        self.server_thread: Optional[threading.Thread] = None
 
     def start(self, open_browser: bool = True) -> str:
         """Start the result viewer server."""

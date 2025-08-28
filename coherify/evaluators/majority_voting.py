@@ -185,8 +185,8 @@ class MajorityVotingEvaluator:
             sample_progress_callback = None
             if progress_callback:
 
-                def sample_progress_callback(run_idx, total_runs):
-                    overall_progress = (i * self.k_runs + run_idx) / (
+                def sample_progress_callback(run_idx, total_runs, sample_idx=i):
+                    overall_progress = (sample_idx * self.k_runs + run_idx) / (
                         total_samples * self.k_runs
                     )
                     progress_callback(
@@ -305,7 +305,7 @@ class MajorityVotingEvaluator:
         self, runs: List[Dict[str, Any]]
     ) -> tuple[Any, Dict[Any, int], float]:
         """Apply coherence-weighted majority voting."""
-        answer_weights = defaultdict(float)
+        answer_weights: Dict[Any, float] = defaultdict(float)
 
         for run in runs:
             answer = run["answer"]

@@ -4,7 +4,7 @@ API-enhanced benchmark adapters using external providers.
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ..core.base import Proposition, PropositionSet
 from ..providers.base import ModelResponse
@@ -143,7 +143,7 @@ class APIEnhancedQAAdapter(QABenchmarkAdapter):
         try:
             # Generate with different temperatures
             for temp in self.config.temperature_range:
-                for i in range(self.config.num_generations_per_prompt):
+                for _ in range(self.config.num_generations_per_prompt):
                     response = self.provider.generate_text(
                         prompt=f"Answer this question accurately and concisely: {question}",
                         max_tokens=200,
@@ -229,7 +229,7 @@ Confidence score (respond with just a number):"""
         self,
         dataset,
         batch_size: int = 10,
-        progress_callback: Optional[callable] = None,
+        progress_callback: Optional[Callable] = None,
     ) -> List[PropositionSet]:
         """Adapt entire dataset with API enhancement and batching."""
         results = []
@@ -324,7 +324,7 @@ class APIBenchmarkEvaluator:
         self,
         dataset,
         sample_limit: Optional[int] = None,
-        progress_callback: Optional[callable] = None,
+        progress_callback: Optional[Callable] = None,
     ) -> Dict[str, Any]:
         """Evaluate entire dataset with API enhancement."""
         if sample_limit:

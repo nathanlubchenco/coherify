@@ -75,8 +75,8 @@ class KRunBenchmarkEvaluator:
         )
 
         # Runtime state
-        self._intermediate_cache = {}
-        self._retry_counts = {}
+        self._intermediate_cache: Dict[str, Any] = {}
+        self._retry_counts: Dict[int, int] = {}
 
     def evaluate_dataset(
         self,

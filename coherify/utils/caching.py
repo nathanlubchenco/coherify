@@ -39,7 +39,7 @@ class EmbeddingCache:
         self.cache_dir = cache_dir
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self._memory_cache = {}
+        self._memory_cache: Dict[str, Any] = {}
 
         # Create cache directory
         os.makedirs(cache_dir, exist_ok=True)
@@ -194,7 +194,7 @@ class ComputationCache:
         self.cache_dir = cache_dir
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self._memory_cache = {}
+        self._memory_cache: Dict[str, Any] = {}
 
         os.makedirs(cache_dir, exist_ok=True)
         self._load_cache()

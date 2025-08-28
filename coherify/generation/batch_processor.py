@@ -185,7 +185,7 @@ class BatchProcessor:
         self.rate_limit = rate_limit
 
         # Rate limiting
-        self.request_times = deque(maxlen=rate_limit)
+        self.request_times: deque[float] = deque(maxlen=rate_limit)
 
         # Caching
         self.cache = ResponseCache() if use_cache else None
@@ -405,7 +405,7 @@ class SmartBatchScheduler:
             batch_processor: BatchProcessor instance
         """
         self.processor = batch_processor
-        self.response_time_history = []
+        self.response_time_history: List[float] = []
 
     def schedule_prompts(
         self, prompts: List[str], priorities: Optional[List[float]] = None
@@ -445,7 +445,7 @@ class SmartBatchScheduler:
         # Simple grouping by prompt length for now
         # In production, could use embeddings for semantic similarity
 
-        groups = {}
+        groups: Dict[int, List[str]] = {}
         for prompt in prompts:
             # Group by length bucket (100 char buckets)
             bucket = len(prompt) // 100

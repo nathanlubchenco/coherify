@@ -399,7 +399,7 @@ Choose the best continuation:
 
         # Majority vote
         if predicted_choices:
-            choice_counts = {}
+            choice_counts: Dict[str, int] = {}
             for choice in predicted_choices:
                 if choice:
                     choice_counts[choice] = choice_counts.get(choice, 0) + 1

@@ -189,11 +189,11 @@ Example: -0.2, 0.8, 0.1, -0.5, 0.3, 0.0, 0.9, -0.1, 0.4, 0.2
                 values = [float(x.strip()) for x in values_text.split(",")]
                 if len(values) == 10:
                     # Normalize to create a proper embedding-like vector
-                    values = np.array(values)
-                    norm = np.linalg.norm(values)
+                    np_values = np.array(values)
+                    norm = np.linalg.norm(np_values)
                     if norm > 0:
-                        values = values / norm
-                    return values.tolist()
+                        np_values = np_values / norm
+                    return np_values.tolist()
             except Exception:
                 pass
 
