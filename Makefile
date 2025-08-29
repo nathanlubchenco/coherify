@@ -107,6 +107,43 @@ benchmark-all-compare: ## Run all benchmarks with 3-stage comparison
 	$(MAKE) benchmark-truthfulqa COMPARE=true
 	$(MAKE) benchmark-faithbench COMPARE=true
 
+# Unified benchmark runner commands
+benchmark-unified: ## Run benchmark with unified runner (BENCHMARK=name MODEL=model K_RUNS=k SAMPLES=n)
+	$(PYTHON) -m coherify.benchmark_runner $(BENCHMARK) --model $(MODEL) --k-runs $(K_RUNS) --sample-size $(SAMPLES)
+
+benchmark-unified-baseline: ## Run only baseline stage
+	$(PYTHON) -m coherify.benchmark_runner $(BENCHMARK) --model $(MODEL) --stages baseline --sample-size $(SAMPLES)
+
+benchmark-unified-majority: ## Run baseline and majority voting stages
+	$(PYTHON) -m coherify.benchmark_runner $(BENCHMARK) --model $(MODEL) --stages baseline majority --k-runs $(K_RUNS) --sample-size $(SAMPLES)
+
+benchmark-unified-all: ## Run all three stages (default)
+	$(PYTHON) -m coherify.benchmark_runner $(BENCHMARK) --model $(MODEL) --k-runs $(K_RUNS) --sample-size $(SAMPLES)
+
+# Quick test commands for unified runner
+test-unified-truthfulqa: ## Quick test of unified runner with TruthfulQA
+	$(PYTHON) -m coherify.benchmark_runner truthfulqa --model $(MODEL) --k-runs 3 --sample-size 5
+
+test-unified-fever: ## Quick test of unified runner with FEVER
+	$(PYTHON) -m coherify.benchmark_runner fever --model $(MODEL) --k-runs 3 --sample-size 5
+
+test-unified-all: test-unified-truthfulqa test-unified-fever ## Test unified runner with all benchmarks
+
+# Validation commands using unified runner
+validate-baseline-truthfulqa: ## Validate TruthfulQA baseline accuracy
+	@echo "Validating TruthfulQA baseline (expect 40-60% for GPT-4)..."
+	$(PYTHON) -m coherify.benchmark_runner truthfulqa --model $(MODEL) --stages baseline --sample-size 20
+
+validate-baseline-fever: ## Validate FEVER baseline accuracy
+	@echo "Validating FEVER baseline (expect 80-90% for GPT-4)..."
+	$(PYTHON) -m coherify.benchmark_runner fever --model $(MODEL) --stages baseline --sample-size 20
+
+validate-improvement: ## Validate that Stage 3 >= Stage 2 >= Stage 1
+	@echo "Validating improvement pattern across stages..."
+	$(PYTHON) -m coherify.benchmark_runner truthfulqa --model $(MODEL) --k-runs 5 --sample-size 20
+
+validate-all: validate-baseline-truthfulqa validate-baseline-fever validate-improvement ## Run all validation tests
+
 
 # Development commands
 dev-setup: ## Set up development environment

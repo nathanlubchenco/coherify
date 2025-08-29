@@ -13,7 +13,7 @@ Coherify is a comprehensive Python library that implements philosophical coheren
 Our research follows a rigorous 3-stage evaluation pipeline:
 
 1. **Stage 1 - Baseline**: Generate single response → Evaluate with official metrics
-2. **Stage 2 - K-pass Majority**: Generate K responses → Select by majority vote → Evaluate  
+2. **Stage 2 - K-pass Majority**: Generate K responses → Select by majority vote → Evaluate
 3. **Stage 3 - Coherence Selection**: Generate K responses → Select by coherence → Evaluate
 
 **Goal**: Demonstrate that coherence-based selection (Stage 3) outperforms simple majority voting (Stage 2), which in turn outperforms single generation (Stage 1).
@@ -60,6 +60,25 @@ cd coherify
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev,viz,benchmarks]"
+```
+
+### Running Benchmarks (Unified Runner)
+
+```bash
+# Run full 3-stage pipeline on TruthfulQA
+python -m coherify.benchmark_runner truthfulqa --model gpt4-mini --k-runs 5 --sample-size 50
+
+# Run only baseline evaluation
+python -m coherify.benchmark_runner truthfulqa --model gpt4-mini --stages baseline
+
+# Run with specific coherence measure
+python -m coherify.benchmark_runner truthfulqa --model gpt4-mini --coherence-measure hybrid
+
+# Using make commands
+make benchmark-unified BENCHMARK=truthfulqa MODEL=gpt4-mini K_RUNS=5 SAMPLES=50
+
+# Validate baselines match published results
+make validate-all MODEL=gpt4-mini
 ```
 
 ### Basic Usage
@@ -397,7 +416,7 @@ results = [measure.compute(prop_set) for measure in measures]
 
 # Create comparison plot
 fig = visualizer.plot_coherence_scores(
-    results, 
+    results,
     labels=["Semantic", "Entailment", "Hybrid"],
     title="Coherence Measures Comparison"
 )
@@ -436,7 +455,7 @@ class CustomCoherenceMeasure(CoherenceMeasure):
     def compute(self, prop_set):
         # Your custom coherence logic here
         score = your_coherence_algorithm(prop_set.propositions)
-        
+
         return CoherenceResult(
             score=score,
             measure_name="Custom",
@@ -457,7 +476,7 @@ result = custom_measure.compute(prop_set)
 
 ### Approximation Strategies
 - **Sampling**: Best for diverse, unstructured content
-- **Clustering**: Optimal for topically organized content  
+- **Clustering**: Optimal for topically organized content
 - **Incremental**: Ideal for real-time applications
 - **Streaming**: Perfect for continuous data processing
 

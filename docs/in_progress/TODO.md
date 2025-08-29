@@ -14,10 +14,22 @@
 - [x] Fixed runtime errors in model providers
 
 ## 📋 Immediate Tasks (In Progress)
-- [ ] Update all documentation to reflect correct pipeline
-- [ ] Clean up outdated files and comments
+- [x] Implement unified benchmark runner (`coherify.benchmark_runner`)
+- [x] Reorganize docs (in_progress/completed/backlog structure)
+- [x] Add validation tests for baselines
+- [ ] Fix FEVER evaluator for unified runner
 - [ ] Test full pipeline with real API keys
-- [ ] Validate against published baselines
+- [ ] Migrate all example scripts to use unified runner
+
+## 🎯 Unified Benchmark Runner ✅
+- **Status**: COMPLETE
+- **Location**: `coherify/benchmark_runner.py`
+- **Features**:
+  - Single entry point for all benchmarks
+  - Configuration-driven execution
+  - Automatic 3-stage pipeline
+  - Results saving and comparison
+- **Usage**: `python -m coherify.benchmark_runner truthfulqa --model gpt4-mini`
 
 ## 🔄 3-Stage Pipeline Implementation Status
 
